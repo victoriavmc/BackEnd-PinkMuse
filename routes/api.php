@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\NoticiaController;
+use App\Http\Controllers\ProductoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -88,7 +89,14 @@ Route::controller(AccionController::class)->group(function () {
     Route::delete('/acciones/{id}', 'destroy'); // Delete a specific news
 });
 
-//Producto
+//Productos
+Route::controller(ProductoController::class)->group(function () {
+    Route::get('/productos', 'index'); // List all news
+    Route::post('/productos', 'store'); // Create a new news
+    Route::get('/productos/{id}', 'show'); // Get a specific news
+    Route::put('/productos/{id}', 'update'); // Update a specific news
+    Route::delete('/productos/{id}', 'destroy'); // Delete a specific news
+});
 
 // Comprobante
 

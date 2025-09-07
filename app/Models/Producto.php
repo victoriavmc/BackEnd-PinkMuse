@@ -9,6 +9,5 @@ class Producto extends Model
     //
     protected $connection = 'mongodb';
     protected $collection = 'productos';
-    protected $fillable = ['nombre','imagenPrincipal','descripcion','precio', 'estado','stock','habilitarAcciones','habilitarComentarios'];
-
+    protected $fillable = ['nombre', 'imagenPrincipal', 'descripcion', 'precio', 'estado', 'stock', 'habilitarAcciones', 'habilitarComentarios'];
 }
