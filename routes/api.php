@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 
 use App\Http\Controllers\AccionController;
 use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\RedSocialController;
 use App\Http\Controllers\EventoController;
@@ -12,6 +13,8 @@ use App\Http\Controllers\RolController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\NoticiaController;
 use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ComprobanteController;
+use App\Http\Controllers\NotificacionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -99,6 +102,13 @@ Route::controller(ProductoController::class)->group(function () {
 });
 
 // Comprobante
+Route::controller(ComprobanteController::class)->group(function () {
+    Route::get('/comprobantes', 'index'); // List all comprobantes
+    Route::post('/comprobantes', 'store'); // Create a new comprobante
+    Route::get('/comprobantes/{id}', 'show'); // Get a specific comprobante
+    Route::put('/comprobantes/{id}', 'update'); // Update a specific comprobante
+    Route::delete('/comprobantes/{id}', 'destroy'); // Delete a specific comprobante
+});
 
 // Notificacion
 

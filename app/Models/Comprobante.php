@@ -10,6 +10,5 @@ class Comprobante extends Model
 
     protected $connection = 'mongodb';
     protected $collection = 'comprobantes';
-    protected $fillable = ['numeroComprobante','fecha','datosPago','producto', 'entrada'];
-
+    protected $fillable = ['numeroComprobante', 'fecha', 'usuario_id', 'datosPago', 'productos', 'total', 'estado'];
 }

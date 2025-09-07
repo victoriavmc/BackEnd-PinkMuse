@@ -149,6 +149,7 @@ class ProductoController
             'stock' => 'sometimes|array',
             'stock.detalles' => 'sometimes|array|min:1',
             'stock.detalles.*.atributos' => 'sometimes|array',
+            'stock.detalles.*.atributos.*.colores' => 'sometimes|array',
             'stock.detalles.*.cantidad' => 'sometimes|integer|min:0',
             'stock.detalles.*.imagenes' => 'nullable|array',
             'stock.detalles.*.imagenes.*' => 'string',
