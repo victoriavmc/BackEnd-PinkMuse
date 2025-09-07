@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\RedSocialController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RolController;
@@ -30,4 +31,16 @@ Route::controller(UsuarioController::class)->group(function () {
     Route::get('/usuarios/{id}', 'show'); // Get a specific user
     Route::put('/usuarios/{id}', 'update'); // Update a specific user
     Route::delete('/usuarios/{id}', 'destroy'); // Delete a specific user
+});
+
+
+
+/////////
+// Redes Sociales
+Route::controller(RedSocialController::class)->group(function () {
+    Route::get('/redes-sociales', 'index'); // List all social networks
+    Route::post('/redes-sociales', 'store'); // Create a new social network
+    Route::get('/redes-sociales/{id}', 'show'); // Get a specific social network
+    Route::put('/redes-sociales/{id}', 'update'); // Update a specific social network
+    Route::delete('/redes-sociales/{id}', 'destroy'); // Delete a specific social network
 });
