@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 
 use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\RedSocialController;
 use App\Http\Controllers\EventoController;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +65,15 @@ Route::controller(NoticiaController::class)->group(function () {
     Route::get('/noticias/{id}', 'show'); // Get a specific news
     Route::put('/noticias/{id}', 'update'); // Update a specific news
     Route::delete('/noticias/{id}', 'destroy'); // Delete a specific news
+});
+
+// Comentario
+Route::controller(ComentarioController::class)->group(function () {
+    Route::get('/comentarios', 'index'); // List all news
+    Route::post('/comentarios', 'store'); // Create a new news
+    Route::get('/comentarios/{id}', 'show'); // Get a specific news
+    Route::put('/comentarios/{id}', 'update'); // Update a specific news
+    Route::delete('/comentarios/{id}', 'destroy'); // Delete a specific news
 });
 /////////
 // Redes Sociales
