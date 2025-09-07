@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Evento;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class EventoController
 {
@@ -19,6 +21,20 @@ class EventoController
      */
     public function store(Request $request)
     {
+        //
+        //   "nombreEvento": "Festival922",
+        //   "nombreLugar": "Teatro Colón",
+        //   "lugar": "Buenos Aires",
+        //   "fecha": "2025-09-10",
+        //   "hora": "20:00",
+        //   "entradas": [
+        //     { "tipo": "VIP", "precio": 15000, "cantidad": 700, "estado": "activo" },
+        //     { "tipo": "General", "precio": 8000, "cantidad": 200, "estado": "agotado" }
+        //   ],
+        //   "coordenadas": { "lat": -34.6, "lng": -58.38 },
+        //   "artistasExtras": ["Banda Invitada"],
+        //   "estado": "activo",
+        //   "imagenPrincipal": "url_evento"
         //
     }
 

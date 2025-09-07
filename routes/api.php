@@ -45,6 +45,15 @@ Route::controller(AlbumController::class)->group(function () {
     Route::delete('/album/{id}', 'destroy'); // Delete a specific social network
 });
 
+// Evento
+Route::controller(EventoController::class)->group(function () {
+    Route::get('/eventos', 'index'); // List all events
+    Route::post('/eventos', 'store'); // Create a new event
+    Route::get('/eventos/{id}', 'show'); // Get a specific event
+    Route::put('/eventos/{id}', 'update'); // Update a specific event
+    Route::delete('/eventos/{id}', 'destroy'); // Delete a specific event
+});
+
 /////////
 // Redes Sociales
 Route::controller(RedSocialController::class)->group(function () {

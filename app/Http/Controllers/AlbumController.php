@@ -226,20 +226,49 @@ class AlbumController
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $titulo)
+    public function destroy(Request $request, string $nombreAlbum)
     {
-        //
-        $album = Album::where('nombre', $titulo)->first();
+        $album = Album::where('nombre', $nombreAlbum)->first();
+
         if (!$album) {
             return response()->json([
-                'message' => 'album no encontrado',
+                'message' => 'Álbum no encontrado',
                 'status' => 404
             ], 404);
         }
 
+        // Si se envía 'tituloCancion', borramos solo esa canción
+        if ($request->has('tituloCancion')) {
+            $titulo = $request->input('tituloCancion');
+            $cancionesActuales = $album->canciones ?? [];
+
+            $nuevasCanciones = array_filter($cancionesActuales, function ($cancion) use ($titulo) {
+                return $cancion['titulo'] !== $titulo;
+            });
+
+            // Si no se encontró la canción
+            if (count($nuevasCanciones) === count($cancionesActuales)) {
+                return response()->json([
+                    'message' => "La canción '{$titulo}' no existe en este álbum",
+                    'status' => 404
+                ], 404);
+            }
+
+            $album->canciones = array_values($nuevasCanciones); // reindexar
+            $album->save();
+
+            return response()->json([
+                'message' => "Canción '{$titulo}' eliminada exitosamente",
+                'album' => $album,
+                'status' => 200
+            ], 200);
+        }
+
+        // Si no se envía 'tituloCancion', borramos todo el álbum
         $album->delete();
+
         return response()->json([
-            'message' => 'Album eliminado exitosamente',
+            'message' => 'Álbum eliminado exitosamente',
             'status' => 200
         ], 200);
     }
