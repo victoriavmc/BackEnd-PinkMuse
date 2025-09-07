@@ -84,7 +84,17 @@ class EventoController
                 'status' => 409
             ], 409);
         }
-        $evento = Evento::create($request->all());
+        $evento = new Evento();
+        $evento->nombreEvento = $request->nombreEvento;
+        $evento->nombreLugar = $request->nombreLugar;
+        $evento->direccion = $request->direccion ?? null;
+        $evento->fecha = $request->fecha;
+        $evento->hora = $request->hora;
+        $evento->entradas = $request->entradas;
+        $evento->estado = $request->estado;
+        $evento->imagenPrincipal = $request->imagenPrincipal ?? null;
+
+        $evento->save();
 
         if (!$evento) {
             return response()->json([
@@ -199,6 +209,10 @@ class EventoController
             }
 
             $evento->entradas = $entradasActuales;
+        }
+        // Si viene dirección, garantizamos que sea objeto
+        if ($request->has('direccion')) {
+            $evento->direccion = $request->direccion;
         }
 
         // Actualizar campos que vienen en la request
