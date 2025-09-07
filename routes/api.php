@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\RedSocialController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -33,7 +34,16 @@ Route::controller(UsuarioController::class)->group(function () {
     Route::delete('/usuarios/{id}', 'destroy'); // Delete a specific user
 });
 
+/// Tablas Principales
 
+// Album
+Route::controller(AlbumController::class)->group(function () {
+    Route::get('/album', 'index'); // List all social networks
+    Route::post('/album', 'store'); // Create a new social network
+    Route::get('/album/{id}', 'show'); // Get a specific social network
+    Route::put('/album/{id}', 'update'); // Update a specific social network
+    Route::delete('/album/{id}', 'destroy'); // Delete a specific social network
+});
 
 /////////
 // Redes Sociales
