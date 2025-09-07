@@ -1,12 +1,14 @@
 <?php
 
+use Illuminate\Http\Request;
+
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\RedSocialController;
 use App\Http\Controllers\EventoController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\NoticiaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +57,14 @@ Route::controller(EventoController::class)->group(function () {
     Route::delete('/eventos/{id}', 'destroy'); // Delete a specific event
 });
 
+// Noticia
+Route::controller(NoticiaController::class)->group(function () {
+    Route::get('/noticias', 'index'); // List all news
+    Route::post('/noticias', 'store'); // Create a new news
+    Route::get('/noticias/{id}', 'show'); // Get a specific news
+    Route::put('/noticias/{id}', 'update'); // Update a specific news
+    Route::delete('/noticias/{id}', 'destroy'); // Delete a specific news
+});
 /////////
 // Redes Sociales
 Route::controller(RedSocialController::class)->group(function () {
