@@ -15,6 +15,7 @@ use App\Http\Controllers\NoticiaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ComprobanteController;
 use App\Http\Controllers\NotificacionController;
+use App\Models\Notificacion;
 
 /*
 |--------------------------------------------------------------------------
@@ -118,7 +119,13 @@ Route::controller(ComprobanteController::class)->group(function () {
 });
 
 // Notificacion
-
+Route::controller(NotificacionController::class)->group(function () {
+    Route::get('/notificaciones', 'index'); // List all notificaciones
+    Route::post('/notificaciones', 'store'); // Create a new comprobante
+    Route::get('/notificaciones/{id}', 'show'); // Get a specific comprobante
+    Route::put('/notificaciones/{id}', 'update'); // Update a specific comprobante
+    Route::delete('/notificaciones/{id}', 'destroy'); // Delete a specific comprobante
+});
 /////////
 // Redes Sociales
 Route::controller(RedSocialController::class)->group(function () {
