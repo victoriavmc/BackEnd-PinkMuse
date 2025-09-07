@@ -44,6 +44,13 @@ Route::controller(UsuarioController::class)->group(function () {
 });
 
 // Auditoria
+Route::controller(AuditoriaController::class)->group(function () {
+    Route::get('/auditoria', 'index'); // List all users
+    Route::post('/auditoria', 'store'); // Create a new user
+    Route::get('/auditoria/{id}', 'show'); // Get a specific user
+    Route::put('/auditoria/{id}', 'update'); // Update a specific user
+    Route::delete('/auditoria/{id}', 'destroy'); // Delete a specific user
+});
 
 /// Tablas Principales
 
