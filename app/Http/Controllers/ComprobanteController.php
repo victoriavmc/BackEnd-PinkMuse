@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Comprobante;
 use Illuminate\Http\Request;
 
-class ComprobanteController extends Controller
+class ComprobanteController
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
     {
         //
     }
@@ -34,15 +25,7 @@ class ComprobanteController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Comprobante $comprobante)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Comprobante $comprobante)
+    public function show(string $id)
     {
         //
     }
@@ -50,7 +33,7 @@ class ComprobanteController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Comprobante $comprobante)
+    public function update(Request $request, string $id)
     {
         //
     }
@@ -58,7 +41,7 @@ class ComprobanteController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Comprobante $comprobante)
+    public function destroy(string $id)
     {
         //
     }

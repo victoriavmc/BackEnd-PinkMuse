@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Comentario;
 use Illuminate\Http\Request;
 
-class ComentarioController extends Controller
+class ComentarioController
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
     {
         //
     }
@@ -34,15 +25,7 @@ class ComentarioController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Comentario $comentario)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Comentario $comentario)
+    public function show(string $id)
     {
         //
     }
@@ -50,7 +33,7 @@ class ComentarioController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Comentario $comentario)
+    public function update(Request $request, string $id)
     {
         //
     }
@@ -58,7 +41,7 @@ class ComentarioController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Comentario $comentario)
+    public function destroy(string $id)
     {
         //
     }

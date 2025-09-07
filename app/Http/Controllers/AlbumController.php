@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Album;
 use Illuminate\Http\Request;
 
-class AlbumController extends Controller
+class AlbumController
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
     {
         //
     }
@@ -34,15 +25,7 @@ class AlbumController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Album $album)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Album $album)
+    public function show(string $id)
     {
         //
     }
@@ -50,7 +33,7 @@ class AlbumController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Album $album)
+    public function update(Request $request, string $id)
     {
         //
     }
@@ -58,7 +41,7 @@ class AlbumController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Album $album)
+    public function destroy(string $id)
     {
         //
     }

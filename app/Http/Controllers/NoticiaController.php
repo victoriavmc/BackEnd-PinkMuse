@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Noticia;
 use Illuminate\Http\Request;
 
-class NoticiaController extends Controller
+class NoticiaController
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
     {
         //
     }
@@ -34,15 +25,7 @@ class NoticiaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Noticia $noticia)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Noticia $noticia)
+    public function show(string $id)
     {
         //
     }
@@ -50,7 +33,7 @@ class NoticiaController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Noticia $noticia)
+    public function update(Request $request, string $id)
     {
         //
     }
@@ -58,7 +41,7 @@ class NoticiaController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Noticia $noticia)
+    public function destroy(string $id)
     {
         //
     }

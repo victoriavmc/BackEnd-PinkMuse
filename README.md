@@ -155,7 +155,7 @@ class Rol extends Model
 ### Crear modelo + migración + controlador
 
 ```bash
-php artisan make:model Student -m --resource
+php artisan make:model Student -m --api
 ```
 
 ⚠️ Aunque las migraciones no se usan directamente con MongoDB, es recomendable ejecutarlas para mantener consistencia:
@@ -187,7 +187,53 @@ php artisan app:CrearAtributosUnicosOIndicesMongo
 -   Fácil de mantener y extender.
 -   Compatible con MongoDB Atlas sin depender de migraciones SQL.
 
+### Ruta
+
+```bash
+php artisan install:api
 ```
 
-### Ruta
+Es un instalador rápido que transforma tu proyecto en un backend API con autenticación lista para usar, en lugar de un proyecto Laravel tradicional con vistas Blade.
+
+1. Instala Sanctum (o el sistema de autenticación elegido) → por eso viste que se descargó laravel/sanctum.
+2. Configura el auth para tokens → te deja lista la base para que tu aplicación emita y valide tokens de acceso.
+3. Configura rutas por defecto en routes/api.php.
+4. Ajusta providers y middlewares necesarios para que el proyecto funcione como API.
+5. Deja el entorno limpio, sin plantillas de Blade ni cosas de frontend, ya que el frontend lo harías con React, Vue, Angular, etc.
+
+# Rutas API en Laravel
+
+Con APIs en Laravel (ejemplo: después de correr `php artisan install:api`), lo más común es definir las rutas en el archivo:
+
+```bash
+routes/api.php
+```
+
+Laravel ofrece una forma rápida de generar automáticamente todas las rutas necesarias para un **CRUD básico** usando:
+
+```bash
+Route::apiResource('posts', PostController::class);
+```
+
+### Rutas generadas automáticamente
+
+Con apiResource, se crean las siguientes rutas:
+
+-   GET /posts → index (listar recursos)
+-   POST /posts → store (crear recurso)
+-   GET /posts/{id} → show (mostrar recurso específico)
+-   PUT/PATCH /posts/{id} → update (actualizar recurso)
+-   DELETE /posts/{id} → destroy (eliminar recurso)
+
+# Diferencia con Route::resource
+
+-   Route::resource crea las 7 rutas: index, create, store, show, edit, update, destroy.
+-   Route::apiResource crea solo las 5 necesarias para APIs (sin create ni edit, porque esas vistas las maneja el frontend).
+
+### Probando la API
+
+Levantas el servidor:
+
+```bash
+php artisan serve
 ```

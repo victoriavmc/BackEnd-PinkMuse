@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Auditoria;
 use Illuminate\Http\Request;
 
-class AuditoriaController extends Controller
+class AuditoriaController
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
     {
         //
     }
@@ -34,15 +25,7 @@ class AuditoriaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Auditoria $auditoria)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Auditoria $auditoria)
+    public function show(string $id)
     {
         //
     }
@@ -50,7 +33,7 @@ class AuditoriaController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Auditoria $auditoria)
+    public function update(Request $request, string $id)
     {
         //
     }
@@ -58,7 +41,7 @@ class AuditoriaController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Auditoria $auditoria)
+    public function destroy(string $id)
     {
         //
     }

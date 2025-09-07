@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Accion;
 use Illuminate\Http\Request;
 
-class AccionController extends Controller
+class AccionController
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
     {
         //
     }
@@ -34,15 +25,7 @@ class AccionController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Accion $accion)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Accion $accion)
+    public function show(string $id)
     {
         //
     }
@@ -50,7 +33,7 @@ class AccionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Accion $accion)
+    public function update(Request $request, string $id)
     {
         //
     }
@@ -58,7 +41,7 @@ class AccionController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Accion $accion)
+    public function destroy(string $id)
     {
         //
     }

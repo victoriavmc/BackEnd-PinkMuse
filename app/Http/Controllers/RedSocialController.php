@@ -2,23 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RedSocial;
 use Illuminate\Http\Request;
 
-class RedSocialController extends Controller
+class RedSocialController
 {
     /**
      * Display a listing of the resource.
      */
     public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
     {
         //
     }
@@ -34,15 +25,7 @@ class RedSocialController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(RedSocial $redSocial)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(RedSocial $redSocial)
+    public function show(string $id)
     {
         //
     }
@@ -50,7 +33,7 @@ class RedSocialController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, RedSocial $redSocial)
+    public function update(Request $request, string $id)
     {
         //
     }
@@ -58,7 +41,7 @@ class RedSocialController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(RedSocial $redSocial)
+    public function destroy(string $id)
     {
         //
     }
