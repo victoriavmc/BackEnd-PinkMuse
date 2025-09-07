@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 
+use App\Http\Controllers\AccionController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\RedSocialController;
@@ -37,6 +38,8 @@ Route::controller(UsuarioController::class)->group(function () {
     Route::put('/usuarios/{id}', 'update'); // Update a specific user
     Route::delete('/usuarios/{id}', 'destroy'); // Delete a specific user
 });
+
+// Auditoria
 
 /// Tablas Principales
 
@@ -75,6 +78,22 @@ Route::controller(ComentarioController::class)->group(function () {
     Route::put('/comentarios/{id}', 'update'); // Update a specific news
     Route::delete('/comentarios/{id}', 'destroy'); // Delete a specific news
 });
+
+// Accion (like, dislike, reportar)
+Route::controller(AccionController::class)->group(function () {
+    Route::get('/acciones', 'index'); // List all news
+    Route::post('/acciones', 'store'); // Create a new news
+    Route::get('/acciones/{id}', 'show'); // Get a specific news
+    Route::put('/acciones/{id}', 'update'); // Update a specific news
+    Route::delete('/acciones/{id}', 'destroy'); // Delete a specific news
+});
+
+//Producto
+
+// Comprobante
+
+// Notificacion
+
 /////////
 // Redes Sociales
 Route::controller(RedSocialController::class)->group(function () {
