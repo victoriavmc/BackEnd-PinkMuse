@@ -1,4 +1,4 @@
-# 🚀 Guía para Comenzar
+# 🚀 Guía para Comenzar el BACK
 
 Antes de iniciar el desarrollo, es fundamental contar con un entorno bien configurado. Esta guía te acompaña paso a paso en la instalación de herramientas clave, la conexión con MongoDB Atlas y la creación de índices únicos.
 
@@ -236,4 +236,10 @@ Levantas el servidor:
 
 ```bash
 php artisan serve
+```
+
+### CREACION CORS
+
+```bash
+php artisan config:publish cors
 ```
