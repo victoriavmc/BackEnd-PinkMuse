@@ -32,7 +32,7 @@ return [
     'connections' => [
         'mongodb' => [
             'driver'   => 'mongodb',
-            'dsn'      => 'mongodb+srv://adminUser:pinkmuse@pinkmuse.shm2uul.mongodb.net/pinkmuse?retryWrites=true&w=majority&appName=pinkmuse',
+            'dsn'      => env('DB_URI', ''),
             'database' => env('DB_DATABASE', 'pinkmuse'),
             'options'  => [
                 'ssl' => true,
@@ -157,7 +157,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-database-'),
+            'prefix' => env('REDIS_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')) . '-database-'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 
