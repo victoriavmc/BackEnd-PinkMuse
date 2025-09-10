@@ -47,6 +47,12 @@ php -r "unlink('composer-setup.php');"
 composer -V
 ```
 
+Modificar el .ini y  descomentar:
+```bash
+extension=zip
+extension=openssl
+extension=fileinfo
+```
 ---
 
 ## 🌐 3. Laravel
