@@ -16,7 +16,10 @@ use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ComprobanteController;
 use App\Http\Controllers\NotificacionController;
 use App\Models\Notificacion;
+use Illuminate\Support\Facades\DB;
 
+
+use App\Http\Controllers\AuthController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -25,6 +28,15 @@ use App\Models\Notificacion;
 | routes are loaded by the RouteServiceProvider within a group which
 | is assigned the "api" middleware group. Enjoy building your API!
 |*/
+
+Route::post('/registro', [AuthController::class, 'registro']);
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/cerrarsesion', [AuthController::class, 'cerrarsesion']);
+    Route::get('/usuario', function (Request $request) {
+        return $request->user();
+    });
+});
 
 // Roles
 Route::controller(RolController::class)->group(function () {
