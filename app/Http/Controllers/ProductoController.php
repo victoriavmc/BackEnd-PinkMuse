@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ProductoController
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      */
@@ -16,17 +18,49 @@ class ProductoController
         //
         $productos = Producto::all();
         if ($productos->isEmpty()) {
-            $data = [
-                'message' => 'No se encontraron productos',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('No se encontraron Productos', 400);
         }
-        $data = [
-            'productos' => $productos,
-            'status' => 200,
-        ];
-        return response()->json($data, 200);
+        return $this->success($productos, 'Productos obtenidos exitosamente', 200);
+    }
+
+    // Validator
+    public function validatorProductos(Request $request, $isUpdate = false)
+    {
+        if ($isUpdate) {
+            $validator = Validator::make($request->all(), [
+                'nombre' => 'prohibited',
+                'imagenPrincipal' => 'sometimes|string',
+                'descripcion' => 'sometimes|string',
+                'precio' => 'sometimes|numeric|min:0',
+                'estado' => 'sometimes|string|in:activo,inactivo',
+                'stock' => 'sometimes|array',
+                'stock.detalles' => 'sometimes|array|min:1',
+                'stock.detalles.*.atributos' => 'sometimes|array',
+                'stock.detalles.*.atributos.*.colores' => 'sometimes|array',
+                'stock.detalles.*.cantidad' => 'sometimes|integer|min:0',
+                'stock.detalles.*.imagenes' => 'nullable|array',
+                'stock.detalles.*.imagenes.*' => 'string',
+                'habilitarComentarios' => 'sometimes|boolean',
+                'habilitarAcciones' => 'sometimes|string|in:si,no',
+            ]);
+        } else {
+            $validator = Validator::make($request->all(), [
+                'nombre' => 'required|string|max:255|unique:productos,nombre',
+                'imagenPrincipal' => 'required|string',
+                'descripcion' => 'required|string',
+                'precio' => 'required|numeric|min:0',
+                'stock' => 'required|array',
+                'stock.detalles' => 'required|array|min:1',
+                'stock.detalles.*.atributos' => 'required|array',
+                'stock.detalles.*.cantidad' => 'required|integer|min:0',
+                'stock.detalles.*.imagenes' => 'nullable|array',
+                'stock.detalles.*.imagenes.*' => 'string',
+                'habilitarComentarios' => 'required|boolean',
+                'habilitarAcciones' => 'required|string|in:si,no',
+            ]);
+        }
+
+        return $validator;
     }
 
     /**
@@ -34,36 +68,14 @@ class ProductoController
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:255|unique:productos,nombre',
-            'imagenPrincipal' => 'required|string',
-            'descripcion' => 'required|string',
-            'precio' => 'required|numeric|min:0',
-            'estado' => 'required|string|in:activo,inactivo',
-            'stock' => 'required|array',
-            'stock.detalles' => 'required|array|min:1',
-            'stock.detalles.*.atributos' => 'required|array',
-            'stock.detalles.*.cantidad' => 'required|integer|min:0',
-            'stock.detalles.*.imagenes' => 'nullable|array',
-            'stock.detalles.*.imagenes.*' => 'string',
-            'habilitarComentarios' => 'required|boolean',
-            'habilitarAcciones' => 'required|string|in:si,no'
-        ]);
-
+        $validator = $this->validatorProductos($request);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         // Verificar duplicado de nombre
         if (Producto::where('nombre', $request->nombre)->exists()) {
-            return response()->json([
-                'message' => 'Ya existe un producto con el mismo nombre',
-                'status' => 409
-            ], 409);
+            return $this->error('Ya existe un producto con el mismo nombre', 409);
         }
 
         // Calcular stock total
@@ -82,24 +94,16 @@ class ProductoController
             'imagenPrincipal' => $request->imagenPrincipal,
             'descripcion' => $request->descripcion,
             'precio' => $request->precio,
-            'estado' => $request->estado,
+            'estado' => 'Activo',
             'stock' => $stock,
             'habilitarComentarios' => $request->habilitarComentarios,
             'habilitarAcciones' => $request->habilitarAcciones
         ]);
 
         if (!$producto) {
-            return response()->json([
-                'message' => 'Error al crear el producto',
-                'status' => 500
-            ], 500);
+            return $this->error('Error al crear el producto', 500);
         }
-
-        return response()->json([
-            'message' => 'Producto creado correctamente',
-            'producto' => $producto,
-            'status' => 201
-        ], 201);
+        return $this->success($producto, 'Producto creado correctamente', 201);
     }
 
     /**
@@ -110,19 +114,9 @@ class ProductoController
         //
         $producto = Producto::where('nombre', $nombre)->first();
         if (!$producto) {
-            $data = [
-                'message' => 'Producto no encontrado',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Producto no encontrado', 404);
         }
-
-        $data = [
-            'message' => 'Producto encontrado',
-            'producto' => $producto,
-            'status' => 200
-        ];
-        return response()->json($data, 200);
+        return $this->success($producto, 'Producto encontrado', 200);
     }
 
     /**
@@ -133,35 +127,12 @@ class ProductoController
         //
         $producto = Producto::where('nombre', $nombre)->first();
         if (!$producto) {
-            $data = [
-                'message' => 'Producto no encontrado',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Producto no encontrado', 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'prohibited',
-            'imagenPrincipal' => 'sometimes|string',
-            'descripcion' => 'sometimes|string',
-            'precio' => 'sometimes|numeric|min:0',
-            'estado' => 'sometimes|string|in:activo,inactivo',
-            'stock' => 'sometimes|array',
-            'stock.detalles' => 'sometimes|array|min:1',
-            'stock.detalles.*.atributos' => 'sometimes|array',
-            'stock.detalles.*.atributos.*.colores' => 'sometimes|array',
-            'stock.detalles.*.cantidad' => 'sometimes|integer|min:0',
-            'stock.detalles.*.imagenes' => 'nullable|array',
-            'stock.detalles.*.imagenes.*' => 'string',
-            'habilitarComentarios' => 'sometimes|boolean',
-            'habilitarAcciones' => 'sometimes|string|in:si,no'
-        ]);
+        $validator = $this->validatorProductos($request);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400);
         }
 
         // Calcular stock total
@@ -185,17 +156,9 @@ class ProductoController
         $producto->save();
 
         if (!$producto) {
-            return response()->json([
-                'message' => 'Error al crear el producto',
-                'status' => 500
-            ], 500);
+            return $this->error('Error al modificar producto', 500);
         }
-
-        return response()->json([
-            'message' => 'Producto modificado correctamente',
-            'producto' => $producto,
-            'status' => 201
-        ], 201);
+        return $this->success($producto, 'Producto modificado correctamente', 201);
     }
 
     /**
@@ -206,18 +169,10 @@ class ProductoController
         //
         $producto = Producto::where('nombre', $nombre)->first();
         if (!$producto) {
-            $data = [
-                'message' => 'Producto no encontrado',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Producto no encontrado', 404);
         }
-        $producto->delete();
-        $data = [
-            'message' => 'Producto eliminado con éxito',
-            'producto' => $producto,
-            'status' => 200
-        ];
-        return response()->json($data, 200);
+        // $producto->delete();
+        $producto->estado = 'Inactivo';
+        return $this->success($nombre, 'Producto eliminado con éxito', 200);
     }
 }

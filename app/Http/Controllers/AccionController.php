@@ -9,28 +9,24 @@ use App\Models\Producto;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\ApiResponse;
 
 class AccionController
 {
+    use ApiResponse;
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
         $acciones = Accion::all();
+
         if ($acciones->isEmpty()) {
-            $data = [
-                'message' => 'No se encontraron acciones',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('No se encontraron acciones', 404);
         }
-        $data = [
-            'acciones' => $acciones,
-            'status' => 200,
-        ];
-        return response()->json($data, 200);
+
+        return $this->success($acciones, 'Listado de acciones');
     }
 
     /**
@@ -46,37 +42,28 @@ class AccionController
             'referencia_id' => 'required|string',
             'usuario_id' => 'required|string',
         ]);
+
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         // Verificar usuario
         $usuario = Usuario::find($request->usuario_id);
         if (!$usuario) {
-            return response()->json([
-                'message' => 'Usuario no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Usuario no encontrado', 404);
         }
 
         // Verificar referencia
         $tipo = $request->tipoReferencia;
         $referencia = match ($tipo) {
-            'noticia'   => Noticia::find($request->referencia_id),
-            'producto'  => Producto::find($request->referencia_id),
+            'noticia'    => Noticia::find($request->referencia_id),
+            'producto'   => Producto::find($request->referencia_id),
             'comentario' => Comentario::find($request->referencia_id),
-            default     => null,
+            default      => null,
         };
 
         if (!$referencia) {
-            return response()->json([
-                'message' => ucfirst($tipo) . ' no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error(ucfirst($tipo) . ' no encontrada', 404);
         }
 
         // Verificar si ya existe una acción de este usuario en esta referencia
@@ -93,57 +80,35 @@ class AccionController
             ->first();
 
         if ($accionExistente) {
-            return response()->json([
-                'message' => "El usuario ya tiene una acción '{$accionExistente->tipo}' sobre esta referencia. Use update si quiere modificar.",
-                'status' => 409
-            ], 409);
+            return $this->error(
+                "El usuario ya tiene una acción '{$accionExistente->tipo}' sobre esta referencia. Use update si quiere modificar.",
+                409
+            );
         }
 
         // Validar que "causa" sea obligatoria solo si es reporte
         if ($request->tipo === 'reporte' && empty($request->causa)) {
-            return response()->json([
-                'message' => 'La causa es obligatoria para el tipo reporte',
-                'status' => 400
-            ], 400);
+            return $this->error('La causa es obligatoria para el tipo reporte', 400);
         }
 
         // Crear la acción
-        $accion = Accion::create([
-            'tipo' => $request->tipo,
-            'causa' => $request->causa,
-            'fecha' => $request->fecha,
-            'tipoReferencia' => $request->tipoReferencia,
-            'referencia_id' => $request->referencia_id,
-            'usuario_id' => $request->usuario_id,
-        ]);
+        $accion = Accion::create($request->all());
 
-        return response()->json([
-            'message' => 'Acción creada exitosamente',
-            'accion' => $accion,
-            'status' => 201
-        ], 201);
+        return $this->success($accion, 'Acción creada exitosamente', 201);
     }
-
 
     /**
      * Display the specified resource.
      */
     public function show(string $id)
     {
-        //
         $accion = Accion::find($id);
 
         if (!$accion) {
-            return response()->json([
-                'message' => 'Accion no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Acción no encontrada', 404);
         }
-        return response()->json([
-            'message' => 'Accion encontrada',
-            'accion' => $accion,
-            'status' => 201
-        ], 201);
+
+        return $this->success($accion, 'Acción encontrada');
     }
 
     /**
@@ -152,11 +117,9 @@ class AccionController
     public function update(Request $request, string $id)
     {
         $accion = Accion::find($id);
+
         if (!$accion) {
-            return response()->json([
-                'message' => 'Acción no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Acción no encontrada', 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -169,69 +132,40 @@ class AccionController
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         // Si se cambia el tipo
         if ($request->has('tipo')) {
-            $nuevoTipo = $request->tipo;
-
-            // Si es reporte → causa obligatoria
-            if ($nuevoTipo === 'reporte' && empty($request->causa)) {
-                return response()->json([
-                    'message' => 'La causa es obligatoria para el tipo reporte',
-                    'status' => 400
-                ], 400);
+            if ($request->tipo === 'reporte' && empty($request->causa)) {
+                return $this->error('La causa es obligatoria para el tipo reporte', 400);
             }
-
-            $accion->tipo = $nuevoTipo;
+            $accion->tipo = $request->tipo;
         }
 
-        // Si viene fecha, actualizarla
         $accion->fecha = $request->fecha;
-
-        // Si viene causa, actualizarla
         if ($request->has('causa')) {
             $accion->causa = $request->causa;
         }
 
         $accion->save();
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
-        }
-        return response()->json([
-            'message' => 'Accion actualizada correctamente',
-            'accion' => $accion,
-            'status' => 201
-        ], 201);
+
+        return $this->success($accion, 'Acción actualizada correctamente');
     }
+
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
     {
-        //
         $accion = Accion::find($id);
 
         if (!$accion) {
-            return response()->json([
-                'message' => 'Accion no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Acción no encontrada', 404);
         }
+
         $accion->delete();
-        return response()->json([
-            'message' => 'Accion eliminada correctamente',
-            'accion' => $accion,
-            'status' => 201
-        ], 201);
+
+        return $this->success($accion, 'Acción eliminada correctamente');
     }
 }

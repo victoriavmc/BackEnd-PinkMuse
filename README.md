@@ -4,6 +4,16 @@ Antes de iniciar el desarrollo, es fundamental contar con un entorno bien config
 
 ---
 
+### DEPENDENCIAS LARAVEL
+
+```bash
+composer update
+composer require mongodb/laravel-mongodb
+composer require laravel/sanctum
+php artisan vendor:publish --tag=sanctum-config
+
+```
+
 ## 🛠️ 1. Configuración del Entorno
 
 ### 🔧 Git
@@ -47,12 +57,14 @@ php -r "unlink('composer-setup.php');"
 composer -V
 ```
 
-Modificar el .ini y  descomentar:
+Modificar el .ini y descomentar:
+
 ```bash
 extension=zip
 extension=openssl
 extension=fileinfo
 ```
+
 ---
 
 ## 🌐 3. Laravel

@@ -2,23 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Accion;
-use App\Models\Album;
 use App\Models\Auditoria;
-use App\Models\Comentario;
-use App\Models\Comprobante;
-use App\Models\Evento;
-use App\Models\Noticia;
-use App\Models\Notificacion;
-use App\Models\Producto;
-use App\Models\RedSocial;
-use App\Models\Rol;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\ApiResponse;
 
 class AuditoriaController
 {
+    use ApiResponse;
+
     /**
      * Display a listing of the resource.
      */
@@ -26,17 +19,9 @@ class AuditoriaController
     {
         $auditoria = Auditoria::orderBy('fecha', 'desc')->get();
         if ($auditoria->isEmpty()) {
-            $data = [
-                'message' => 'No se encontraron movientos para la auditoria',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('No se encontraron movimientos para la auditoria', 404);
         }
-        return response()->json([
-            'message' => 'Listado de auditoria',
-            'auditoria' => $auditoria,
-            'status' => 200
-        ], 200);
+        return $this->success($auditoria, 'Listado de auditoria', 200);
     }
 
     /**
@@ -53,20 +38,12 @@ class AuditoriaController
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
-        //Verifico si existe el usuario_id
         $usuario = Usuario::find($request->usuario_id);
         if (!$usuario) {
-            return response()->json([
-                'message' => 'Usuario no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Usuario no encontrado', 404);
         }
 
         $auditoria = Auditoria::create([
@@ -78,18 +55,10 @@ class AuditoriaController
         ]);
 
         if (!$auditoria) {
-            $data = [
-                'message' => 'No se puede registrar movientos en la auditoria',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('No se puede registrar movimientos en la auditoria', 500);
         }
 
-        return response()->json([
-            'message' => 'Movimiento de Auditoria registrado exitosamente',
-            'auditoria' => $auditoria,
-            'status' => 201
-        ], 201);
+        return $this->success($auditoria, 'Movimiento de auditoria registrado exitosamente', 201);
     }
 
     /**
@@ -100,17 +69,10 @@ class AuditoriaController
         $auditoria = Auditoria::find($id);
 
         if (!$auditoria) {
-            return response()->json([
-                'message' => 'Movimiento en auditoria no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Movimiento en auditoria no encontrado', 404);
         }
 
-        return response()->json([
-            'message' => 'Movimiento en auditoria encontrada',
-            'auditoria' => $auditoria,
-            'status' => 200
-        ], 200);
+        return $this->success($auditoria, 'Movimiento en auditoria encontrado', 200);
     }
 
     /**
@@ -118,20 +80,13 @@ class AuditoriaController
      */
     public function update(Request $request, string $id)
     {
-        //
         $auditoria = Auditoria::find($id);
 
         if (!$auditoria) {
-            return response()->json([
-                'message' => 'Movimiento en auditoria no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Movimiento en auditoria no encontrado', 404);
         }
 
-        return response()->json([
-            'message' => 'NO PODES EDITAR NADA DE AUDITORIA BOBO, ANDA PA ALLA',
-            'status' => 404
-        ], 404);
+        return $this->error('NO PODES EDITAR NADA DE AUDITORIA BOBO, ANDA PA ALLA', 403);
     }
 
     /**
@@ -139,18 +94,11 @@ class AuditoriaController
      */
     public function destroy(string $id)
     {
-        //
         $auditoria = Auditoria::find($id);
         if (!$auditoria) {
-            return response()->json([
-                'message' => 'Movimiento en auditoria no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Movimiento en auditoria no encontrado', 404);
         }
 
-        return response()->json([
-            'message' => 'NO PODES BORRAR NADA DE AUDITORIA BOBO, ANDA PA ALLA',
-            'status' => 404
-        ], 404);
+        return $this->error('NO PODES BORRAR NADA DE AUDITORIA BOBO, ANDA PA ALLA', 403);
     }
 }

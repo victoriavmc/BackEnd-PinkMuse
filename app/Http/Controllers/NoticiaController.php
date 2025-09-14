@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Noticia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\ApiResponse;
+use phpDocumentor\Reflection\PseudoTypes\True_;
 
 class NoticiaController
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      */
@@ -16,26 +19,25 @@ class NoticiaController
         //
         $noticias = Noticia::all();
         if ($noticias->isEmpty()) {
-            $data = [
-                'message' => 'No se encontraron noticias',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('No se encontraron noticias', 404);
         }
-        $data = [
-            'noticias' => $noticias,
-            'status' => 200,
-        ];
-        return response()->json($data, 200);
+        return $this->success($noticias, 'Noticias encontradas', 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    // Validacion
+    public function validatorNoticia(Request $request, $isUpdate = false)
     {
-        //
-        $validator = Validator::make($request->all(), [
+        $rules = $isUpdate ? [
+            'tipoActividad' => 'prohibited',
+            'titulo' => 'prohibited',
+            'descripcion' => 'sometimes|string',
+            'imagenPrincipal' => 'nullable|string|max:255',
+            'imagenes' => 'nullable|array',
+            'imagenes.*' => 'string|max:255',
+            'fecha' => 'sometimes|date',
+            'habilitacionComentarios' => 'sometimes|boolean',
+            'habilitacionAcciones' => 'sometimes|string|in:si,no',
+        ] : [
             'tipoActividad' => 'required|string|in:noticia',
             'titulo' => 'required|string|max:255',
             'descripcion' => 'required|string',
@@ -45,39 +47,34 @@ class NoticiaController
             'fecha' => 'required|date',
             'habilitacionComentarios' => 'required|boolean',
             'habilitacionAcciones' => 'required|string|in:si,no',
-        ]);
+        ];
 
+        return Validator::make($request->all(), $rules);
+    }
+
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        //
+        $validator = $this->validatorNoticia($request);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         // Verificar si ya existe una noticia con el mismo título
         if (Noticia::where('titulo', $request->titulo)->exists()) {
-            return response()->json([
-                'message' => 'Ya existe una noticia con el mismo título',
-                'status' => 409
-            ], 409);
+            return $this->error('Ya existe una noticia con el mismo título', 409);
         }
 
         $noticia = Noticia::create($request->all());
 
         if (!$noticia) {
-            return response()->json([
-                'message' => 'Error al crear la noticia',
-                'status' => 500
-            ], 500);
+            return $this->error('Error al crear la noticia', 500);
         }
-
-        $data = [
-            'message' => 'Noticia creada con éxito',
-            'noticia' => $noticia,
-            'status' => 201
-        ];
-        return response()->json($data, 201);
+        return $this->success($noticia, 'Noticia creada con éxito', 201);
     }
 
     /**
@@ -88,15 +85,9 @@ class NoticiaController
         //
         $noticia = Noticia::where('titulo', $titulo)->first();
         if (!$noticia) {
-            return response()->json([
-                'message' => 'Noticia no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Noticia no encontrada', 404);
         }
-        return response()->json([
-            'noticia' => $noticia,
-            'status' => 200
-        ], 200);
+        return $this->success($noticia, 'Noticia encontrada', 200);
     }
 
     /**
@@ -107,30 +98,12 @@ class NoticiaController
         //
         $noticia = Noticia::where('titulo', $titulo)->first();
         if (!$noticia) {
-            return response()->json([
-                'message' => 'Noticia no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Noticia no encontrada', 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'tipoActividad' => 'prohibited',
-            'titulo' => 'prohibited',
-            'descripcion' => 'sometimes|string',
-            'imagenPrincipal' => 'nullable|string|max:255',
-            'imagenes' => 'nullable|array',
-            'imagenes.*' => 'string|max:255',
-            'fecha' => 'sometimes|date',
-            'habilitacionComentarios' => 'sometimes|boolean',
-            'habilitacionAcciones' => 'sometimes|string|in:si,no',
-        ]);
-
+        $validator = $this->validatorNoticia($request, true);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 404, $validator->errors());
         }
 
         // Actualizar campos simples
@@ -144,12 +117,7 @@ class NoticiaController
         }
 
         $noticia->save();
-
-        return response()->json([
-            'message' => 'Noticia actualizada exitosamente',
-            'noticia' => $noticia,
-            'status' => 200
-        ], 200);
+        return $this->success($noticia, 'Noticia actualizada exitosamente', 200);
     }
 
     /**
@@ -160,16 +128,9 @@ class NoticiaController
         //
         $noticia = Noticia::where('titulo', $titulo)->first();
         if (!$noticia) {
-            return response()->json([
-                'message' => 'Noticia no encontrada',
-                'status' => 404
-            ], 404);
+            return $this->error('Noticia no encontrada', 404);
         }
         $noticia->delete();
-
-        return response()->json([
-            'message' => 'Noticia eliminada exitosamente',
-            'status' => 200
-        ], 200);
+        return $this->success($noticia, 'Noticia eliminada exitosamente', 200);
     }
 }

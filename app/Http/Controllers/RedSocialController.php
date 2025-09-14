@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\RedSocial;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class RedSocialController
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      */
@@ -16,17 +18,25 @@ class RedSocialController
         //
         $redSociales = RedSocial::all();
         if ($redSociales->isEmpty()) {
-            $data = [
-                'message' => 'No se encontraron redes sociales',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('No hay redes sociales disponibles', 404);
         }
-        $data = [
-            'redes_sociales' => $redSociales,
-            'status' => 200,
-        ];
-        return response()->json($data, 200);
+        return $this->success($redSociales, 200);
+    }
+
+    //Validator
+    public function validateRequest(Request $request, $isUpdate = false)
+    {
+        if ($isUpdate) {
+            return Validator::make($request->all(), [
+                'nombre' => 'sometimes|required|string|max:255|unique:nombre,nombre',
+                'url' => 'sometimes|required|url',
+            ]);
+        } else {
+            return Validator::make($request->all(), [
+                'nombre' => 'required|string|max:255|unique:nombre,nombre',
+                'url' => 'required|url',
+            ]);
+        }
     }
 
     /**
@@ -35,34 +45,18 @@ class RedSocialController
     public function store(Request $request)
     {
         //
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:255|unique:nombre,nombre',
-            'url' => 'required|url',
-        ]);
+        $validator = $this->validateRequest($request);
         if ($validator->fails()) {
-            $data = [
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ];
-            return response()->json($data, 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         // Verifica que no se duplique el nombre de la red social
         if (RedSocial::where('nombre', $request->nombre)->exists()) {
-            return response()->json([
-                'message' => 'El nombre ya existe',
-                'status' => 409
-            ], 409);
+            return $this->error('El nombre de la red social ya existe', 409);
         }
 
         $redSocial = RedSocial::create($request->all());
-        $data = [
-            'message' => 'Red social creada con éxito',
-            'red_social' => $redSocial,
-            'status' => 201
-        ];
-        return response()->json($data, 201);
+        return $this->success($redSocial, 'Red social creada con éxito', 201);
     }
 
     /**
@@ -73,17 +67,9 @@ class RedSocialController
         //
         $redSocial = RedSocial::where('nombre', $nombre)->first();
         if (!$redSocial) {
-            $data = [
-                'message' => 'Red social no encontrada',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Red social no encontrada', 404);
         }
-        $data = [
-            'red_social' => $redSocial,
-            'status' => 200
-        ];
-        return response()->json($data, 200);
+        return $this->success($redSocial, 200);
     }
 
     /**
@@ -94,31 +80,17 @@ class RedSocialController
         //
         $redSocial = RedSocial::where('nombre', $nombre)->first();
         if (!$redSocial) {
-            $data = [
-                'message' => 'Red social no encontrada',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Red social no encontrada', 404);
         }
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'prohibited',
-            'url' => 'sometimes|required|url|max:255',
-        ]);
+
+        $validator = $this->validateRequest($request, true);
         if ($validator->fails()) {
-            $data = [
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ];
-            return response()->json($data, 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
+
         $redSocial->update($request->all());
-        $data = [
-            'message' => 'Red social actualizada con éxito',
-            'red_social' => $redSocial,
-            'status' => 200
-        ];
-        return response()->json($data, 200);
+
+        return $this->success($redSocial, 'Red social actualizada con éxito', 200);
     }
 
     /**
@@ -129,17 +101,9 @@ class RedSocialController
         //
         $redSocial = RedSocial::where('nombre', $nombre)->first();
         if (!$redSocial) {
-            $data = [
-                'message' => 'Red social no encontrada',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Red social no encontrada', 404);
         }
         $redSocial->delete();
-        $data = [
-            'message' => 'Red social eliminada con éxito',
-            'status' => 200
-        ];
-        return response()->json($data, 200);
+        return $this->success(null, 'Red social eliminada con éxito', 200);
     }
 }

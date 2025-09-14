@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Rol;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\ApiResponse;
 
 class RolController
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      */
@@ -17,17 +19,33 @@ class RolController
         $roles = Rol::all();
 
         if ($roles->isEmpty()) {
-            $data = [
-                'message' => 'No se encontraron roles',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('No se encontraron roles', 404);
         }
-        $data = [
-            'roles' => $roles,
-            'status' => 200,
-        ];
-        return response()->json($data, 200);
+        return $this->success($roles, 'Roles obtenidos exitosamente', 200);
+    }
+
+
+    // VALIDATOR
+    public function validateRol(Request $request, $isUpdate = false)
+    {
+        if ($isUpdate) {
+            $rules = [
+                'rol' => 'prohibited',
+                'permisos' => 'sometimes|required|array',
+                'permisos.*.modulo' => 'prohibited',
+                'permisos.*.acciones' => 'required_with:permisos|array|min:1',
+                'permisos.*.acciones.*' => 'required_with:permisos|string|max:255',
+            ];
+        } else {
+            $rules = [
+                'rol' => 'required|string|max:255|unique:roles,rol',
+                'permisos' => 'required|array',
+                'permisos.*.modulo' => 'required|string|max:255', // nombre del módulo
+                'permisos.*.acciones' => 'required|array', // acciones permitidas en el módulo
+                'permisos.*.acciones.*' => 'required|string|max:255', // nombre de la acción
+            ];
+        }
+        return Validator::make($request->all(), $rules);
     }
 
     /**
@@ -35,37 +53,20 @@ class RolController
      */
     public function store(Request $request)
     {
-        //
-        $validator = Validator::make($request->all(), [
-            'rol' => 'required|string|max:255|unique:roles,rol',
-            'permisos' => 'required|array',
-            'permisos.*.modulo' => 'required|string|max:255', // nombre del módulo
-            'permisos.*.acciones' => 'required|array', // acciones permitidas en el módulo
-            'permisos.*.acciones.*' => 'required|string|max:255', // nombre de la acción
-        ]);
-
+        // Validar datos de entrada}
+        $validator = $this->validateRol($request);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         if (Rol::where('rol', $request->rol)->exists()) {
-            return response()->json([
-                'message' => 'El rol ya existe',
-                'status' => 409
-            ], 409);
+            return $this->error('El nombre del rol ya existe', 400);
         }
 
         // Validar módulos únicos
         $modulos = array_column($request->permisos, 'modulo');
         if (count($modulos) !== count(array_unique($modulos))) {
-            return response()->json([
-                'message' => 'Los módulos deben ser únicos dentro de un mismo rol',
-                'status' => 400
-            ], 400);
+            return $this->error('Los módulos deben ser únicos dentro de un mismo rol', 400);
         }
 
         // Eliminar acciones repetidas dentro de cada módulo
@@ -79,17 +80,10 @@ class RolController
         ]);
 
         if (!$rol) {
-            return response()->json([
-                'message' => 'Error al crear el rol',
-                'status' => 500
-            ], 500);
+            return $this->error('Error al crear el rol', 500);
         }
 
-        return response()->json([
-            'message' => 'Rol creado exitosamente',
-            'rol' => $rol,
-            'status' => 201
-        ], 201);
+        return $this->success($rol, 'Rol creado exitosamente', 201);
     }
 
     /**
@@ -101,16 +95,10 @@ class RolController
         $rol = Rol::where('rol', $rol)->first();
 
         if (!$rol) {
-            return response()->json([
-                'message' => 'Rol no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Rol no encontrado', 404);
         }
 
-        return response()->json([
-            'rol' => $rol,
-            'status' => 200
-        ], 200);
+        return $this->success($rol, 'Rol obtenido exitosamente', 200);
     }
 
     /**
@@ -122,35 +110,18 @@ class RolController
         $rol = Rol::where('rol', $rol)->first();
 
         if (!$rol) {
-            return response()->json([
-                'message' => 'Rol no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Rol no encontrado', 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'rol' => 'prohibited',
-            'permisos' => 'sometimes|required|array',
-            'permisos.*.modulo' => 'prohibited',
-            'permisos.*.acciones' => 'required_with:permisos|array|min:1',
-            'permisos.*.acciones.*' => 'required_with:permisos|string|max:255',
-        ]);
-
+        $validator = $this->validateRol($request, true);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         if ($request->has('permisos')) {
             $modulos = array_column($request->permisos, 'modulo');
-            if(count($modulos) !== count(array_unique($modulos))){
-                return response()->json([
-                    'message' => 'Los módulos deben ser únicos dentro de un mismo rol',
-                    'status' => 400
-                ], 400);
+            if (count($modulos) !== count(array_unique($modulos))) {
+                return $this->error('Los módulos deben ser únicos dentro de un mismo rol', 400);
             }
             // Eliminar acciones repetidas dentro de cada módulo
             foreach ($request->permisos as &$permiso) {
@@ -160,17 +131,10 @@ class RolController
         }
 
         if (!$rol->save()) {
-            return response()->json([
-                'message' => 'Error al actualizar el rol',
-                'status' => 500
-            ], 500);
+            return $this->error('Error al actualizar el rol', 500);
         }
 
-        return response()->json([
-            'message' => 'Rol actualizado exitosamente',
-            'rol' => $rol,
-            'status' => 200
-        ], 200);
+        return $this->success($rol, 'Rol actualizado exitosamente', 200);
     }
 
     /**
@@ -182,16 +146,10 @@ class RolController
         $rol = Rol::where('rol', $rol)->first();
 
         if (!$rol) {
-            return response()->json([
-                'message' => 'Rol no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Rol no encontrado', 404);
         }
 
         $rol->delete();
-        return response()->json([
-            'message' => 'Rol eliminado exitosamente',
-            'status' => 200
-        ], 200);
+        return $this->success(null, 'Rol eliminado exitosamente', 200);
     }
 }

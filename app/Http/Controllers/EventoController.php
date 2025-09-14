@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Evento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\ApiResponse;
 
 class EventoController
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      */
@@ -16,17 +18,62 @@ class EventoController
         //
         $eventos = Evento::all();
         if ($eventos->isEmpty()) {
-            $data = [
-                'message' => 'No se encontraron eventos',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error("No se encontraron eventos", 404);
         }
-        $data = [
-            'eventos' => $eventos,
-            'status' => 200,
-        ];
-        return response()->json($data, 200);
+        return $this->success($eventos, "Eventos obtenidos exitosamente", 200);
+    }
+
+    // Validator
+    public function validatorEvento(Request $request, $isUpdate = false)
+    {
+        if ($isUpdate) {
+            $validator = Validator::make($request->all(), [
+                'nombreEvento' => 'prohibited', // no se puede modificar
+                'nombreLugar' => 'sometimes|required|string|max:255',
+                'direccion' => 'nullable|array',
+                'direccion.calle' => 'nullable|string|max:255',
+                'direccion.ciudad' => 'nullable|string|max:100',
+                'direccion.numero' => 'nullable|integer|min:1',
+                'fecha' => 'sometimes|required|date',
+                'hora' => 'sometimes|required|string|max:10',
+                'entradas' => 'nullable|array',
+                'entradas.*.tipo' => 'required_with:entradas|string|max:100',
+                'entradas.*.precio' => 'required_with:entradas|numeric|min:0',
+                'entradas.*.cantidad' => 'required_with:entradas|integer|min:0',
+                'entradas.*.estado' => 'required_with:entradas|string|max:50',
+                'coordenadas' => 'nullable|array',
+                'coordenadas.lat' => 'nullable|numeric|between:-90,90',
+                'coordenadas.lng' => 'nullable|numeric|between:-180,180',
+                'artistasExtras' => 'nullable|array',
+                'artistasExtras.*' => 'string|max:255',
+                'estado' => 'sometimes|required|string|max:50',
+                'imagenPrincipal' => 'nullable|string|max:255',
+            ]);
+        } else {
+            $validator = Validator::make($request->all(), [
+                'nombreEvento' => 'required|string|max:255|unique:eventos,nombreEvento',
+                'nombreLugar' => 'required|string|max:255',
+                'direccion' => 'nullable|array',
+                'direccion.calle' => 'nullable|string|max:255',
+                'direccion.ciudad' => 'nullable|string|max:100',
+                'direccion.numero' => 'nullable|integer|min:1',
+                'fecha' => 'required|date',
+                'hora' => 'required|string|max:10',
+                'entradas' => 'required|array',
+                'entradas.*.tipo' => 'required|string|max:100',
+                'entradas.*.precio' => 'required|numeric|min:0',
+                'entradas.*.cantidad' => 'required|integer|min:0',
+                'entradas.*.estado' => 'required|string|max:50',
+                'coordenadas' => 'nullable|array',
+                'coordenadas.lat' => 'nullable|numeric|between:-90,90',
+                'coordenadas.lng' => 'nullable|numeric|between:-180,180',
+                'artistasExtras' => 'nullable|array',
+                'artistasExtras.*' => 'string|max:255',
+                'estado' => 'required|string|max:50',
+                'imagenPrincipal' => 'nullable|string|max:255',
+            ]);
+        }
+        return $validator;
     }
 
     /**
@@ -34,55 +81,21 @@ class EventoController
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'nombreEvento' => 'required|string|max:255|unique:eventos,nombreEvento',
-            'nombreLugar' => 'required|string|max:255',
-            'direccion' => 'nullable|array',
-            'direccion.calle' => 'nullable|string|max:255',
-            'direccion.ciudad' => 'nullable|string|max:100',
-            'direccion.numero' => 'nullable|integer|min:1',
-            'fecha' => 'required|date',
-            'hora' => 'required|string|max:10',
-            'entradas' => 'required|array',
-            'entradas.*.tipo' => 'required|string|max:100',
-            'entradas.*.precio' => 'required|numeric|min:0',
-            'entradas.*.cantidad' => 'required|integer|min:0',
-            'entradas.*.estado' => 'required|string|max:50',
-            'coordenadas' => 'nullable|array',
-            'coordenadas.lat' => 'nullable|numeric|between:-90,90',
-            'coordenadas.lng' => 'nullable|numeric|between:-180,180',
-            'artistasExtras' => 'nullable|array',
-            'artistasExtras.*' => 'string|max:255',
-            'estado' => 'required|string|max:50',
-            'imagenPrincipal' => 'nullable|string|max:255',
-        ]);
+        $validator = $this->validatorEvento($request);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         //Verificar que El mismo tipo de entrada, EN un mismo evento no se repita
         if ($request->has('entradas')) {
             $tipos = array_column($request->entradas, 'tipo');
             if (count($tipos) !== count(array_unique($tipos))) {
-                return response()->json([
-                    'message' => 'Error de validación',
-                    'errors' => [
-                        'entradas' => ['No puede haber tipos de entrada repetidos en el mismo evento']
-                    ],
-                    'status' => 400
-                ], 400);
+                return $this->error('Error de validación', 400, 'No puede haber tipos de entrada repetidos en el mismo evento');
             }
         }
 
         if (Evento::where('nombreEvento', $request->nombreEvento)->exists()) {
-            return response()->json([
-                'message' => 'El evento ya existe',
-                'status' => 409
-            ], 409);
+            return $this->error('El evento ya existe', 409,);
         }
         $evento = new Evento();
         $evento->nombreEvento = $request->nombreEvento;
@@ -97,17 +110,10 @@ class EventoController
         $evento->save();
 
         if (!$evento) {
-            return response()->json([
-                'message' => 'Error al crear el evento',
-                'status' => 500
-            ], 500);
+            return $this->error('Error al crear el evento', 500);
         }
 
-        return response()->json([
-            'message' => 'Evento creado exitosamente',
-            'evento' => $evento,
-            'status' => 201
-        ], 201);
+        return $this->success($evento, 'Evento creado exitosamente', 201);
     }
 
     /**
@@ -118,15 +124,9 @@ class EventoController
         //
         $evento = Evento::where('nombreEvento', $nombreEvento)->first();
         if (!$evento) {
-            return response()->json([
-                'message' => 'Evento no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Evento no encontrado', 404);
         }
-        return response()->json([
-            'evento' => $evento,
-            'status' => 200
-        ], 200);
+        return $this->success($evento, 'Evento encontrado exitosamente', 201);
     }
 
     /**
@@ -136,41 +136,12 @@ class EventoController
     {
         $evento = Evento::where('nombreEvento', $nombreEvento)->first();
         if (!$evento) {
-            return response()->json([
-                'message' => 'Evento no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Evento no encontrado', 404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'nombreEvento' => 'prohibited', // no se puede modificar
-            'nombreLugar' => 'sometimes|required|string|max:255',
-            'direccion' => 'nullable|array',
-            'direccion.calle' => 'nullable|string|max:255',
-            'direccion.ciudad' => 'nullable|string|max:100',
-            'direccion.numero' => 'nullable|integer|min:1',
-            'fecha' => 'sometimes|required|date',
-            'hora' => 'sometimes|required|string|max:10',
-            'entradas' => 'nullable|array',
-            'entradas.*.tipo' => 'required_with:entradas|string|max:100',
-            'entradas.*.precio' => 'required_with:entradas|numeric|min:0',
-            'entradas.*.cantidad' => 'required_with:entradas|integer|min:0',
-            'entradas.*.estado' => 'required_with:entradas|string|max:50',
-            'coordenadas' => 'nullable|array',
-            'coordenadas.lat' => 'nullable|numeric|between:-90,90',
-            'coordenadas.lng' => 'nullable|numeric|between:-180,180',
-            'artistasExtras' => 'nullable|array',
-            'artistasExtras.*' => 'string|max:255',
-            'estado' => 'sometimes|required|string|max:50',
-            'imagenPrincipal' => 'nullable|string|max:255',
-        ]);
-
+        $validator = $this->validatorEvento($request, true);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors()->first());
         }
 
         if ($request->has('entradas')) {
@@ -183,13 +154,7 @@ class EventoController
 
                 // Verificar duplicado dentro del request
                 if (in_array($tipo, $tiposNuevos)) {
-                    return response()->json([
-                        'message' => 'Error de validación',
-                        'errors' => [
-                            'entradas' => ["El tipo de entrada '{$tipo}' se repite en la solicitud"]
-                        ],
-                        'status' => 400
-                    ], 400);
+                    return $this->error("El tipo de entrada '{$tipo}' se repite en la solicitud", 400,);
                 }
                 $tiposNuevos[] = $tipo;
 
@@ -222,11 +187,7 @@ class EventoController
 
         $evento->save();
 
-        return response()->json([
-            'message' => 'Evento actualizado exitosamente',
-            'evento' => $evento,
-            'status' => 200
-        ], 200);
+        return $this->success($evento, 'Evento actualizado exitosamente', 200);
     }
 
 
@@ -238,10 +199,7 @@ class EventoController
         $evento = Evento::where('nombreEvento', $nombreEvento)->first();
 
         if (!$evento) {
-            return response()->json([
-                'message' => 'Evento no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Evento no encontrado', 404);
         }
 
         // Si se envía 'tipo', borramos solo esa entrada
@@ -255,28 +213,18 @@ class EventoController
 
             // Si no se encontró la entrada
             if (count($entradasFiltradas) === count($entradasActuales)) {
-                return response()->json([
-                    'message' => "La entrada '{$tipo}' no existe en este evento",
-                    'status' => 404
-                ], 404);
+                return $this->error("La entrada '{$tipo}'  no existe en este evento", 404);
             }
 
             $evento->entradas = array_values($entradasFiltradas); // reindexar
             $evento->save();
 
-            return response()->json([
-                'message' => "Entrada '{$tipo}' eliminada exitosamente",
-                'evento' => $evento,
-                'status' => 200
-            ], 200);
+            return $this->success(null, "Entrada '{$tipo}' eliminada exitosamente", 200);
         }
 
         // Si no se envía 'tipoEntrada', borramos todo el evento
         $evento->delete();
 
-        return response()->json([
-            'message' => 'Evento eliminado exitosamente',
-            'status' => 200
-        ], 200);
+        return $this->success(null, 'Evento eliminado exitosamente', 200);
     }
 }

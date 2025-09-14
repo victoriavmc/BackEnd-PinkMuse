@@ -8,9 +8,11 @@ use App\Models\Producto;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Traits\ApiResponse;
 
 class ComprobanteController
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      */
@@ -19,17 +21,9 @@ class ComprobanteController
         //
         $comprobantes = Comprobante::all();
         if ($comprobantes->isEmpty()) {
-            $data = [
-                'message' => 'No se encontraron comprobantes',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error("No se encontraron comprobantes", 404);
         }
-        $data = [
-            'comprobantes' => $comprobantes,
-            'status' => 200,
-        ];
-        return response()->json($data, 200);
+        return $this->success($comprobantes, 'Comprobantes encontrados con exito', 200);
     }
 
     /**
@@ -66,45 +60,29 @@ class ComprobanteController
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
         // Verificar que el usuario exista
         $usuario = Usuario::find($request->usuario_id);
         if (!$usuario) {
-            return response()->json([
-                'message' => 'Usuario no encontrado',
-                'status' => 404
-            ], 404);
+            return $this->error('Usuario no encontrado', 404);
         }
 
         // Los datos de pago se validan como array, no es necesario decodificar, pero el idTransaccion debe ser único en toda la colección de comprobantes
         $idTransaccion = $request->datosPago['idTransaccion'];
         if (Comprobante::where('datosPago->idTransaccion', $idTransaccion)->exists()) {
-            return response()->json([
-                'message' => "El ID de transacción {$idTransaccion} ya existe",
-                'status' => 409
-            ], 409);
+            return $this->error("El ID de transacción {$idTransaccion} ya existe", 409);
         }
 
         // Validar y procesar cada producto
         if (!is_array($request->productos) || empty($request->productos)) {
-            return response()->json([
-                'message' => 'El campo productos debe ser un array no vacío',
-                'status' => 400
-            ], 400);
+            return $this->error("El campo productos debe ser un array no vacío", 400);
         }
 
         // Recibo productos como array de objetos
         if (!is_array($request->productos)) {
-            return response()->json([
-                'message' => 'El campo productos debe ser un array',
-                'status' => 400
-            ], 400);
+            return $this->error("El campo productos debe ser un array", 400);
         }
 
         // Procesar productos y calcular total
@@ -119,10 +97,7 @@ class ComprobanteController
 
                 // Verificar que el producto exista
                 if (!$referencia) {
-                    return response()->json([
-                        'message' => "El producto con ID {$producto['referencia_id']} no existe",
-                        'status' => 404
-                    ], 404);
+                    return $this->error("El producto con ID {$producto['referencia_id']} no existe", 404);
                 }
 
                 // Sabiendo que existe el producto, voy a guardar sus datos especificos
@@ -146,10 +121,7 @@ class ComprobanteController
                 $referencia = Evento::find($producto['referencia_id']);
                 // Verificar que el evento exista
                 if (!$referencia) {
-                    return response()->json([
-                        'message' => "El evento con ID {$producto['referencia_id']} no existe",
-                        'status' => 404
-                    ], 404);
+                    return $this->error("El producto con ID {$producto['referencia_id']} no existe", 404);
                 }
 
                 // Aca dice que tipo de entrada selecciono
@@ -160,10 +132,7 @@ class ComprobanteController
 
                 // No existe
                 if (!$entradaSeleccionada) {
-                    return response()->json([
-                        'message' => "No existe entrada '{$tipoEntrada}' para el evento {$referencia->nombreEvento}",
-                        'status' => 404
-                    ], 404);
+                    return $this->error("No existe entrada '{$tipoEntrada}' para el evento {$referencia->nombreEvento}", 404);
                 }
 
                 // En caso que exista, traigo el precio de la entrada seleccionada
@@ -186,10 +155,7 @@ class ComprobanteController
                     'subtotal' => $subtotal
                 ];
             } else {
-                return response()->json([
-                    'message' => "Tipo de referencia inválido: {$producto['tipoReferencia']}",
-                    'status' => 400
-                ], 400);
+                return $this->error("Tipo de referencia inválido: {$producto['tipoReferencia']}", 400);
             }
         }
 
@@ -204,18 +170,10 @@ class ComprobanteController
 
         // Error al crear
         if (!$comprobante) {
-            return response()->json([
-                'message' => 'Error al crear el comprobante',
-                'status' => 500
-            ], 500);
+            return $this->error('Error al crear el comprobante', 500);
         }
 
-        // Creado con exito
-        return response()->json([
-            'message' => 'Comprobante creado exitosamente',
-            'comprobante' => $comprobante,
-            'status' => 201
-        ], 201);
+        return $this->success($comprobante, 'Comprobante creado exitosamente', 201);
     }
 
 
@@ -224,22 +182,11 @@ class ComprobanteController
      */
     public function show(string $numeroComprobante)
     {
-        //
         $comprobante = Comprobante::where('numeroComprobante', $numeroComprobante)->first();
         if (!$comprobante) {
-            $data = [
-                'message' => 'Comprobante no encontrado',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Comprobante no encontrado', 404);
         }
-
-        $data = [
-            'message' => 'Comprobante encontrado',
-            'comprobante' => $comprobante,
-            'status' => 200
-        ];
-        return response()->json($data, 200);
+        return $this->success($comprobante, 'Comprobante encontrado', 200);
     }
 
     /**
@@ -250,11 +197,7 @@ class ComprobanteController
         //
         $comprobante = Comprobante::where('numeroComprobante', $numeroComprobante)->first();
         if (!$comprobante) {
-            $data = [
-                'message' => 'Comprobante no encontrado',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Comprobante no encontrado', 404);
         }
 
         $validator = Validator::make($request->all(), [
@@ -278,12 +221,9 @@ class ComprobanteController
             'estado' => 'sometimes|string|in:emitida,pendiente,cancelada'
         ]);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors(),
-                'status' => 400
-            ], 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
+
         $productosProcesados = [];
         $total = 0;
 
@@ -292,10 +232,7 @@ class ComprobanteController
                 if ($producto['tipoReferencia'] === 'producto') {
                     $referencia = Producto::find($producto['referencia_id']);
                     if (!$referencia) {
-                        return response()->json([
-                            'message' => "El producto con ID {$producto['referencia_id']} no existe",
-                            'status' => 404
-                        ], 404);
+                        return $this->error("El producto con ID {$producto['referencia_id']} no existe", 404);
                     }
 
                     $precioUnitario = $referencia->precio ?? 0;
@@ -315,20 +252,14 @@ class ComprobanteController
                 } elseif ($producto['tipoReferencia'] === 'evento') {
                     $referencia = Evento::find($producto['referencia_id']);
                     if (!$referencia) {
-                        return response()->json([
-                            'message' => "El evento con ID {$producto['referencia_id']} no existe",
-                            'status' => 404
-                        ], 404);
+                        return $this->error("El evento con ID {$producto['referencia_id']} no existe", 404);
                     }
 
                     $tipoEntrada = $producto['tipoEntrada'] ?? null;
                     $entradaSeleccionada = collect($referencia->entradas)->firstWhere('tipo', $tipoEntrada);
 
                     if (!$entradaSeleccionada) {
-                        return response()->json([
-                            'message' => "No existe entrada '{$tipoEntrada}' para el evento {$referencia->nombreEvento}",
-                            'status' => 404
-                        ], 404);
+                        return $this->error("No existe entrada '{$tipoEntrada}' para el evento {$referencia->nombreEvento}", 404);
                     }
 
                     $precioUnitario = $entradaSeleccionada['precio']['$numberInt'] ?? $entradaSeleccionada['precio'];
@@ -365,11 +296,7 @@ class ComprobanteController
 
         $comprobante->save();
 
-        return response()->json([
-            'message' => 'Comprobante actualizado exitosamente',
-            'comprobante' => $comprobante,
-            'status' => 200
-        ], 200);
+        return $this->success($comprobante, 'Comprobante actualizado exitosamente', 200);
     }
 
     /**
@@ -377,34 +304,17 @@ class ComprobanteController
      */
     public function destroy(string $numeroComprobante)
     {
-        //
         $comprobante = Comprobante::where('numeroComprobante', $numeroComprobante)->first();
         if (!$comprobante) {
-            $data = [
-                'message' => 'Comprobante no encontrado',
-                'status' => 404
-            ];
-            return response()->json($data, 404);
+            return $this->error('Comprobante no encontrado', 404);
         }
 
         try {
-            // Cambiar el estado a 'eliminado'
-            $comprobante->estado = "eliminado";
+            $comprobante->estado = "Eliminado";
             $comprobante->save();
-
-            return response()->json([
-                'message' => 'Comprobante eliminado correctamente',
-                'comprobante' => $comprobante,
-                'status' => 200
-            ], 200);
+            return $this->success($comprobante, 'Comprobante eliminado correctamente', 200);
         } catch (\Exception $e) {
-
-            // Manejar cualquier error al guardar
-            return response()->json([
-                'message' => 'Error al eliminar el comprobante',
-                'error' => $e->getMessage(),
-                'status' => 500
-            ], 500);
+            return $this->error('Error al eliminar el comprobante', 500, ['error' => $e->getMessage()]);
         }
     }
 }
