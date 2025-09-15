@@ -39,7 +39,6 @@ return [
             ],
         ],
 
-
         'sqlite' => [
             'driver' => 'sqlite',
             'url' => env('DB_URL'),

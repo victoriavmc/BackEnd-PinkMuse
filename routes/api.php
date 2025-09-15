@@ -15,8 +15,9 @@ use App\Http\Controllers\NoticiaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ComprobanteController;
 use App\Http\Controllers\NotificacionController;
-use App\Models\Notificacion;
 
+
+use App\Http\Controllers\AuthController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -25,6 +26,15 @@ use App\Models\Notificacion;
 | routes are loaded by the RouteServiceProvider within a group which
 | is assigned the "api" middleware group. Enjoy building your API!
 |*/
+
+Route::post('/registro', [AuthController::class, 'registro']);
+Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::middleware('mongo.auth')->group(function () {
+    Route::post('/cerrarsesion', [AuthController::class, 'cerrarsesion']);
+    Route::get('/usuario', function (Request $request) {
+        return $request->user();
+    });
+});
 
 // Roles
 Route::controller(RolController::class)->group(function () {
@@ -126,7 +136,7 @@ Route::controller(NotificacionController::class)->group(function () {
     Route::put('/notificaciones/{id}', 'update'); // Update a specific comprobante
     Route::delete('/notificaciones/{id}', 'destroy'); // Delete a specific comprobante
 });
-/////////
+
 // Redes Sociales
 Route::controller(RedSocialController::class)->group(function () {
     Route::get('/redes-sociales', 'index'); // List all social networks
