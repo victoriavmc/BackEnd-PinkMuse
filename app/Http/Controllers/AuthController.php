@@ -75,14 +75,23 @@ class AuthController
     {
         $credentials = $request->validate([
             'correo' => 'required|email',
-            'password' => 'required|string',
+            'password' => 'required|string|min:6',
+        ], [
+            'correo.required' => 'El campo correo es obligatorio.',
+            'correo.email' => 'El correo debe ser una dirección de email válida.',
+            'password.required' => 'El campo contraseña es obligatorio.',
+            'password.string' => 'La contraseña debe ser texto.',
+            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
         ]);
+
         $user = Usuario::where('correo', $credentials['correo'])->first();
+
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'correo' => ['Las credenciales son incorrectas.'],
+                'correo' => ['No existe ningun usuario con estas credenciales.'],
             ]);
         }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -93,8 +102,13 @@ class AuthController
 
     public function cerrarsesion(Request $request)
     {
-        // Alternative approach
-        $request->user()->tokens()->where('id', $request->user()->currentAccessToken()->id)->delete();
+        $currentToken = $request->user()->currentAccessToken();
+
+        if (!$currentToken) {
+            return response()->json(['message' => 'Token no válido'], 401);
+        }
+
+        $request->user()->revokeToken($currentToken->id);
 
         return response()->json(['message' => 'Sesión cerrada correctamente']);
     }

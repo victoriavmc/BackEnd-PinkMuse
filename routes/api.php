@@ -15,8 +15,6 @@ use App\Http\Controllers\NoticiaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ComprobanteController;
 use App\Http\Controllers\NotificacionController;
-use App\Models\Notificacion;
-use Illuminate\Support\Facades\DB;
 
 
 use App\Http\Controllers\AuthController;
@@ -31,7 +29,7 @@ use App\Http\Controllers\AuthController;
 
 Route::post('/registro', [AuthController::class, 'registro']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('mongo.auth')->group(function () {
     Route::post('/cerrarsesion', [AuthController::class, 'cerrarsesion']);
     Route::get('/usuario', function (Request $request) {
         return $request->user();
@@ -138,7 +136,7 @@ Route::controller(NotificacionController::class)->group(function () {
     Route::put('/notificaciones/{id}', 'update'); // Update a specific comprobante
     Route::delete('/notificaciones/{id}', 'destroy'); // Delete a specific comprobante
 });
-/////////
+
 // Redes Sociales
 Route::controller(RedSocialController::class)->group(function () {
     Route::get('/redes-sociales', 'index'); // List all social networks
