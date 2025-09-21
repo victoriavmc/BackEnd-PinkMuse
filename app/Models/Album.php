@@ -11,4 +11,9 @@ class Album extends Model
     protected $collection = 'albums';
     protected $fillable = ['artista','fecha','imagenPrincipal','nombre', 'redSocial','canciones'];
 
+  // Nombre del álbum → Capitalizado
+    public function setNombreAttribute($value)
+    {
+        $this->attributes['nombre'] = ucwords(strtolower($value));
+    }
 }

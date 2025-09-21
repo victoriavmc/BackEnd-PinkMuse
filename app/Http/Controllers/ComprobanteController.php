@@ -36,14 +36,15 @@ class ComprobanteController
             'fecha' => 'required|date',
             'usuario_id' => 'required|string|exists:usuarios,_id',
 
-            'datosPago' => 'required|array',
+            'datosPago' => 'required|array|min:1',
             'datosPago.nombre' => 'required|string',
             'datosPago.apellido' => 'required|string',
             'datosPago.email' => 'required|email',
-            'datosPago.dni' => 'required|string',
-            'datosPago.telefono' => 'required|string',
+            'datosPago.dni' => 'required|digits:8',
+            'datosPago.telefono' => 'required|digits:13',
             'datosPago.idTransaccion' => 'required|string',
             'datosPago.metodoPago' => 'required|string|in:tarjeta,transferencia,efectivo',
+
 
             'productos' => 'required|array|min:1',
             'productos.*.tipoReferencia' => 'required|string|in:producto,evento',

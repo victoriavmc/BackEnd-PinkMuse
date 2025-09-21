@@ -39,6 +39,30 @@ class Usuario extends Authenticatable
         'api_tokens' => 'array',
     ];
 
+    // Nombre → Capitalizado
+    public function setNombreAttribute($value)
+    {
+        $this->attributes['nombre'] = ucfirst(strtolower($value));
+    }
+
+    // Apellido → Capitalizado
+    public function setApellidoAttribute($value)
+    {
+        $this->attributes['apellido'] = ucfirst(strtolower($value));
+    }
+
+    // Nacionalidad → Capitalizado
+    public function setNacionalidadAttribute($value)
+    {
+        $this->attributes['nacionalidad'] = ucfirst(strtolower($value));
+    }
+
+    // Correo → Minúsculas
+    public function setCorreoAttribute($value)
+    {
+        $this->attributes['correo'] = strtolower($value);
+    }
+    
     /**
      * Crear un token de acceso para el usuario
      */
