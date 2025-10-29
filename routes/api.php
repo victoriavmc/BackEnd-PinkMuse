@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Http\Request;
 
@@ -15,9 +15,9 @@ use App\Http\Controllers\NoticiaController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ComprobanteController;
 use App\Http\Controllers\NotificacionController;
-
-
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ReaccionController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -34,6 +34,15 @@ Route::middleware('mongo.auth')->group(function () {
     Route::get('/usuario', function (Request $request) {
         return $request->user();
     });
+
+    Route::get('/notificaciones', [NotificacionController::class, 'index']);
+    Route::post('/notificaciones', [NotificacionController::class, 'store']);
+    Route::get('/notificaciones/{id}', [NotificacionController::class, 'show']);
+    Route::put('/notificaciones/{id}', [NotificacionController::class, 'update']);
+    Route::delete('/notificaciones/{id}', [NotificacionController::class, 'destroy']);
+    Route::patch('/notificaciones/{id}/marcar-leida', [NotificacionController::class, 'markAsRead']);
+    Route::post('/notificaciones/marcar-todas-leidas', [NotificacionController::class, 'markAllAsRead']);
+
 });
 
 // Roles
@@ -99,6 +108,15 @@ Route::controller(ComentarioController::class)->group(function () {
     Route::get('/comentarios/{id}', 'show'); // Get a specific news
     Route::put('/comentarios/{id}', 'update'); // Update a specific news
     Route::delete('/comentarios/{id}', 'destroy'); // Delete a specific news
+    Route::get('/noticias/{noticia}/comentarios', 'listByNoticia');
+    Route::post('/noticias/{noticia}/comentarios', 'storeForNoticia');
+});
+
+// Reacciones
+Route::controller(ReaccionController::class)->group(function () {
+    Route::post('/reacciones', 'store'); // Toggle o registra una reaccion
+    Route::get('/noticias/{noticia}/reacciones', 'summaryForNoticia'); // Resumen de reacciones de una noticia
+    Route::get('/comentarios/{comentario}/reacciones', 'summaryForComentario'); // Resumen de reacciones de un comentario
 });
 
 // Accion (like, dislike, reportar)
@@ -126,15 +144,6 @@ Route::controller(ComprobanteController::class)->group(function () {
     Route::get('/comprobantes/{id}', 'show'); // Get a specific comprobante
     Route::put('/comprobantes/{id}', 'update'); // Update a specific comprobante
     Route::delete('/comprobantes/{id}', 'destroy'); // Delete a specific comprobante
-});
-
-// Notificacion
-Route::controller(NotificacionController::class)->group(function () {
-    Route::get('/notificaciones', 'index'); // List all notificaciones
-    Route::post('/notificaciones', 'store'); // Create a new comprobante
-    Route::get('/notificaciones/{id}', 'show'); // Get a specific comprobante
-    Route::put('/notificaciones/{id}', 'update'); // Update a specific comprobante
-    Route::delete('/notificaciones/{id}', 'destroy'); // Delete a specific comprobante
 });
 
 // Redes Sociales
