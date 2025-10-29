@@ -9,5 +9,22 @@ class Notificacion extends Model
     //
     protected $connection = 'mongodb';
     protected $collection = 'notificaciones';
-    protected $fillable = ['tipo', 'mensaje', 'tipoRefencia', 'referencia_id', 'fecha'];
+    protected $fillable = [
+        'usuario_id',
+        'tipo',
+        'titulo',
+        'mensaje',
+        'referencia_tipo',
+        'referencia_id',
+        'datos',
+        'leida',
+        'fecha',
+    ];
+
+
+
+    protected $attributes = [
+        'datos' => [],
+        'leida' => false,
+    ];
 }
