@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
@@ -14,6 +15,13 @@ class UsuarioController
      * Display a listing of the resource.
      */
     use ApiResponse;
+
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
 
     public function index()
     {
@@ -91,7 +99,8 @@ class UsuarioController
         //     'imagenPrincipal' => $request->input('perfil.imagenPrincipal') ?? null
         // ];
         // $usuario->preferenciaNotificacion = $request->preferenciaNotificacion ?? [];
-        // $usuario->rol_id = $request->rol_id;
+        //             $usuario->rol_id = $request->rol_id;
+            $usuario->rol = $rol->rol;
         // $usuario->estado = $request->estado;
         // $usuario->save();
 
@@ -118,6 +127,7 @@ class UsuarioController
         if (!$usuario) {
             return $this->error('Usuario no encontrado', 404);
         }
+                $usuario->refresh();
         return $this->success($usuario, 'Usuario obtenido exitosamente', 200);
     }
 
@@ -143,7 +153,6 @@ class UsuarioController
             'perfil' => 'sometimes|required|array',
             'perfil.username' => 'prohibited',
             'perfil.imagenPrincipal' => 'nullable|string|max:500',
-            'preferenciaNotificacion' => 'nullable|array',
             'rol_id' => 'sometimes|required|string',
             'estado' => 'sometimes|required|string|in:activo,inactivo,teta',
         ]);
@@ -158,7 +167,8 @@ class UsuarioController
             if (!$rol) {
                 return $this->error('El rol no existe', 404);
             }
-            $usuario->rol_id = $request->rol_id;
+                        $usuario->rol_id = $request->rol_id;
+            $usuario->rol = $rol->rol;
         }
 
         // Actualizar campos simples si se envían
@@ -185,17 +195,13 @@ class UsuarioController
             $usuario->perfil = $perfil;
         }
 
-        // Actualizar preferencias de notificación
-        if ($request->has('preferenciaNotificacion')) {
-            $usuario->preferenciaNotificacion = $request->preferenciaNotificacion;
-        }
-
         $usuario->save();
 
         if (!$usuario) {
             return $this->error('Error al actualizar el usuario', 500);
         }
 
+                $usuario->refresh();
         return $this->success($usuario, 'Usuario actualizado exitosamente', 200);
     }
 

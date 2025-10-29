@@ -3,13 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Evento;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
+use Carbon\Carbon;
 
 class EventoController
 {
     use ApiResponse;
+
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -113,7 +122,39 @@ class EventoController
             return $this->error('Error al crear el evento', 500);
         }
 
+        $this->notificationService->notifyUsers('evento', [
+            'titulo' => 'Nuevo evento',
+            'mensaje' => sprintf(
+                'Se agregA3 el evento "%s" para el %s.',
+                $evento->nombreEvento,
+                $this->formatEventDate($evento->fecha)
+            ),
+            'referencia_tipo' => 'evento',
+            'referencia_id' => $evento->_id ?? $evento->id ?? null,
+            'datos' => [
+                'nombre' => $evento->nombreEvento,
+                'fecha' => $evento->fecha,
+                'hora' => $evento->hora,
+                'imagen' => $evento->imagenPrincipal,
+                'link' => '/eventos/' . rawurlencode((string) $evento->nombreEvento),
+            ],
+            'fecha' => Carbon::now(),
+        ]);
+
         return $this->success($evento, 'Evento creado exitosamente', 201);
+    }
+
+    protected function formatEventDate($value): string
+    {
+        if (!$value) {
+            return 'prA3ximamente';
+        }
+
+        try {
+            return Carbon::parse($value)->format('d/m/Y');
+        } catch (\Throwable $exception) {
+            return is_string($value) ? $value : 'prA3ximamente';
+        }
     }
 
     /**

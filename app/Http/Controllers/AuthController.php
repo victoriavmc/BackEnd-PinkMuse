@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Support\Facades\Validator;
 
@@ -29,7 +30,7 @@ class AuthController
         ]);
 
         if ($validator->fails()) {
-            return $this->error('Error de validación', 400, $validator->errors());
+            return $this->error('Error de validaci�n', 400, $validator->errors());
         }
 
         if (Usuario::where('correo', $request->correo)->exists()) {
@@ -46,7 +47,6 @@ class AuthController
             return $this->error('El rol no existe', 404);
         }
 
-        //
         $usuario = new Usuario();
         $usuario->nombre = $request->nombre;
         $usuario->apellido = $request->apellido;
@@ -58,9 +58,8 @@ class AuthController
             'username' => $request->input('perfil.username'),
             'imagenPrincipal' => $request->input('perfil.imagenPrincipal') ?? null
         ];
-        $usuario->preferenciaNotificacion = [];
-
         $usuario->rol_id = $rol_id;
+        $usuario->rol = $rol->rol;
         $usuario->estado = 'Activo';
         $usuario->save();
 
@@ -68,7 +67,7 @@ class AuthController
             return $this->error('Error al crear el usuario', 500);
         }
 
-        return $this->success($usuario, 'Usuario creado correctamente', 201);
+        return $this->success($usuario->fresh(), 'Usuario creado correctamente', 201);
     }
 
     public function login(Request $request)
@@ -78,15 +77,15 @@ class AuthController
             'password' => 'required|string|min:6',
         ], [
             'correo.required' => 'El campo correo es obligatorio.',
-            'correo.email' => 'El correo debe ser una dirección de email válida.',
-            'password.required' => 'El campo contraseña es obligatorio.',
-            'password.string' => 'La contraseña debe ser texto.',
-            'password.min' => 'La contraseña debe tener al menos 6 caracteres.',
+            'correo.email' => 'El correo debe ser una direcci�n de email v�lida.',
+            'password.required' => 'El campo contrase�a es obligatorio.',
+            'password.string' => 'La contrase�a debe ser texto.',
+            'password.min' => 'La contrase�a debe tener al menos 6 caracteres.',
         ]);
 
         $user = Usuario::where('correo', $credentials['correo'])->first();
 
-        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'correo' => ['No existe ningun usuario con estas credenciales.'],
             ]);
@@ -95,7 +94,7 @@ class AuthController
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->fresh(),
             'token' => $token,
         ]);
     }
@@ -105,11 +104,11 @@ class AuthController
         $currentToken = $request->user()->currentAccessToken();
 
         if (!$currentToken) {
-            return response()->json(['message' => 'Token no válido'], 401);
+            return response()->json(['message' => 'Token no v�lido'], 401);
         }
 
         $request->user()->revokeToken($currentToken->id);
 
-        return response()->json(['message' => 'Sesión cerrada correctamente']);
+        return response()->json(['message' => 'Sesi�n cerrada correctamente']);
     }
 }

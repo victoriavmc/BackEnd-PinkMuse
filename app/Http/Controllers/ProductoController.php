@@ -3,13 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
+use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class ProductoController
 {
     use ApiResponse;
+
+    protected NotificationService $notificationService;
+
+    public function __construct(NotificationService $notificationService)
+    {
+        $this->notificationService = $notificationService;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -103,6 +112,22 @@ class ProductoController
         if (!$producto) {
             return $this->error('Error al crear el producto', 500);
         }
+
+        $this->notificationService->notifyUsers('producto', [
+            'titulo' => 'Nuevo producto',
+            'mensaje' => sprintf('Nuevo producto disponible: %s.', $producto->nombre),
+            'referencia_tipo' => 'producto',
+            'referencia_id' => $producto->_id ?? $producto->id ?? null,
+            'datos' => [
+                'nombre' => $producto->nombre,
+                'descripcion' => $producto->descripcion,
+                'precio' => $producto->precio,
+                'imagen' => $producto->imagenPrincipal,
+                'link' => '/merch',
+            ],
+            'fecha' => Carbon::now(),
+        ]);
+
         return $this->success($producto, 'Producto creado correctamente', 201);
     }
 
