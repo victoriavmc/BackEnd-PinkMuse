@@ -3,19 +3,28 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
+use App\Services\ImageService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class ProductoController
 {
     use ApiResponse;
+
+    private ImageService $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
         $productos = Producto::all();
         if ($productos->isEmpty()) {
             return $this->error('No se encontraron Productos', 400);
@@ -29,7 +38,8 @@ class ProductoController
         if ($isUpdate) {
             $validator = Validator::make($request->all(), [
                 'nombre' => 'prohibited',
-                'imagenPrincipal' => 'sometimes|string',
+                'imagenPrincipal' => 'sometimes|image|mimes:jpeg,png,jpg,webp|max:2048',
+                'stock.detalles.*.imagenes.*' => 'sometimes|image|mimes:jpeg,png,jpg,webp|max:2048',
                 'descripcion' => 'sometimes|string',
                 'precio' => 'sometimes|numeric|min:0',
                 'estado' => 'sometimes|string|in:activo,inactivo',
@@ -39,14 +49,14 @@ class ProductoController
                 'stock.detalles.*.atributos.*.colores' => 'sometimes|array',
                 'stock.detalles.*.cantidad' => 'sometimes|integer|min:0',
                 'stock.detalles.*.imagenes' => 'nullable|array',
-                'stock.detalles.*.imagenes.*' => 'string',
                 'habilitarComentarios' => 'sometimes|boolean',
                 'habilitarAcciones' => 'sometimes|string|in:si,no',
             ]);
         } else {
             $validator = Validator::make($request->all(), [
                 'nombre' => 'required|string|max:255|unique:productos,nombre',
-                'imagenPrincipal' => 'required|string',
+                'imagenPrincipal' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+                'stock.detalles.*.imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
                 'descripcion' => 'required|string',
                 'precio' => 'required|numeric|min:0',
                 'stock' => 'required|array',
@@ -54,7 +64,6 @@ class ProductoController
                 'stock.detalles.*.atributos' => 'required|array',
                 'stock.detalles.*.cantidad' => 'required|integer|min:0',
                 'stock.detalles.*.imagenes' => 'nullable|array',
-                'stock.detalles.*.imagenes.*' => 'string',
                 'habilitarComentarios' => 'required|boolean',
                 'habilitarAcciones' => 'required|string|in:si,no',
             ]);
@@ -73,25 +82,74 @@ class ProductoController
             return $this->error('Error de validación', 400, $validator->errors());
         }
 
-        // Verificar duplicado de nombre
         if (Producto::where('nombre', $request->nombre)->exists()) {
             return $this->error('Ya existe un producto con el mismo nombre', 409);
         }
 
-        // Calcular stock total
-        $stockDetalles = $request->stock['detalles'];
-        $stockTotal = collect($stockDetalles)->sum('cantidad');
+        $nombreBaseProducto = $request->nombre;
+        $rutasImagenPrincipal = null;
 
-        // Armar el objeto stock con total + detalles
+        // 1. Procesar imagenPrincipal
+        if ($request->hasFile('imagenPrincipal')) {
+
+            $rutas = $this->imageService->guardar(
+                $request->file('imagenPrincipal'),
+                'producto',
+                $nombreBaseProducto . '_principal',
+                false,
+                0
+            );
+
+            $rutasImagenPrincipal = $rutas[0];
+        }
+
+        // 2. Procesar imágenes de stock
+        $detallesInput = $request->input('stock.detalles', []);
+        $filesInput = $request->file('stock.detalles', []);
+        $stockDetallesProcesados = [];
+
+        foreach ($detallesInput as $index => $detalle) {
+            $rutasImagenesDetalle = [];
+
+            if (isset($filesInput[$index]['imagenes']) && is_array($filesInput[$index]['imagenes'])) {
+
+                $files = $filesInput[$index]['imagenes']; // Array de UploadedFile
+
+                // Definir cuál es la principal
+                $principalIndex = 0;
+
+                // Creamos un nombre base único para este detalle
+                $nombreBaseDetalle = $nombreBaseProducto . '_detalle_' . $index;
+
+                $rutasImagenesDetalle = $this->imageService->guardar(
+                    $files,
+                    'producto',
+                    $nombreBaseDetalle,
+                    true, // multiple = true
+                    $principalIndex
+                );
+            }
+
+            $stockDetallesProcesados[] = [
+                'atributos' => $detalle['atributos'],
+                'cantidad' => $detalle['cantidad'],
+                'imagenes' => $rutasImagenesDetalle, // Guardamos el array de rutas
+            ];
+        }
+
+        // Calcular stock total
+        $stockTotal = collect($stockDetallesProcesados)->sum('cantidad');
+
+        // Armar el objeto stock con total + detalles procesados
         $stock = [
             'total' => $stockTotal,
-            'detalles' => $stockDetalles
+            'detalles' => $stockDetallesProcesados
         ];
 
         // Crear producto
         $producto = Producto::create([
             'nombre' => $request->nombre,
-            'imagenPrincipal' => $request->imagenPrincipal,
+            'imagenPrincipal' => $rutasImagenPrincipal, // Guardamos el array ['png'=>...]
             'descripcion' => $request->descripcion,
             'precio' => $request->precio,
             'estado' => 'Activo',
@@ -122,57 +180,119 @@ class ProductoController
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $nombre)
+    public function update(Request $request, Producto $producto)
     {
-        //
-        $producto = Producto::where('nombre', $nombre)->first();
-        if (!$producto) {
-            return $this->error('Producto no encontrado', 404);
-        }
-
-        $validator = $this->validatorProductos($request);
+        $validator = $this->validatorProductos($request, true);
         if ($validator->fails()) {
-            return $this->error('Error de validación', 400);
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
-        // Calcular stock total
-        $stockDetalles = $request->stock['detalles'];
-        $stockTotal = collect($stockDetalles)->sum('cantidad');
+        $data = $validator->validated();
 
-        // Armar el objeto stock con total + detalles
-        $stock = [
-            'total' => $stockTotal,
-            'detalles' => $stockDetalles
-        ];
+        $nombreBaseProducto = $producto->nombre;
 
-        // Modificar producto
-        $producto->imagenPrincipal = $request->imagenPrincipal;
-        $producto->descripcion = $request->descripcion;
-        $producto->precio = $request->precio;
-        $producto->estado = $request->estado;
-        $producto->stock = $stock;
-        $producto->habilitarComentarios = $request->habilitarComentarios;
-        $producto->habilitarAcciones = $request->habilitarAcciones;
-        $producto->save();
+        // 1. Procesar imagenPrincipal (si se envió una nueva)
+        if ($request->hasFile('imagenPrincipal')) {
+            // Eliminar la imagen anterior
+            $this->imageService->eliminar($producto->imagenPrincipal);
 
-        if (!$producto) {
-            return $this->error('Error al modificar producto', 500);
+            // Guardar la nueva imagen
+            $rutas = $this->imageService->guardar(
+                $request->file('imagenPrincipal'),
+                'producto',
+                $nombreBaseProducto . '_principal',
+                false,
+                0
+            );
+            $data['imagenPrincipal'] = $rutas[0];
         }
-        return $this->success($producto, 'Producto modificado correctamente', 201);
+
+        // 2. Procesar imágenes de stock (si se envió stock)
+        if ($request->has('stock')) {
+            $detallesInput = $request->input('stock.detalles', []);
+            $filesInput = $request->file('stock.detalles', []);
+            $oldStockDetalles = $producto->stock['detalles'] ?? [];
+
+            $stockDetallesProcesados = [];
+
+            foreach ($detallesInput as $index => $detalle) {
+                $rutasImagenesDetalle = $oldStockDetalles[$index]['imagenes'] ?? [];
+
+                if (isset($filesInput[$index]['imagenes']) && is_array($filesInput[$index]['imagenes'])) {
+
+                    foreach ($rutasImagenesDetalle as $oldImage) {
+                        $this->imageService->eliminar($oldImage);
+                    }
+
+                    $files = $filesInput[$index]['imagenes'];
+                    $nombreBaseDetalle = $nombreBaseProducto . '_detalle_' . $index;
+                    $rutasImagenesDetalle = $this->imageService->guardar(
+                        $files,
+                        'producto',
+                        $nombreBaseDetalle,
+                        true,
+                        0
+                    );
+                }
+
+                $stockDetallesProcesados[] = [
+                    'atributos' => $detalle['atributos'],
+                    'cantidad' => $detalle['cantidad'],
+                    'imagenes' => $rutasImagenesDetalle,
+                ];
+            }
+
+            $oldDetailCount = count($oldStockDetalles);
+            $newDetailCount = count($stockDetallesProcesados);
+            if ($oldDetailCount > $newDetailCount) {
+                for ($i = $newDetailCount; $i < $oldDetailCount; $i++) {
+                    if (isset($oldStockDetalles[$i]['imagenes'])) {
+                        foreach ($oldStockDetalles[$i]['imagenes'] as $imgToDelete) {
+                            $this->imageService->eliminar($imgToDelete);
+                        }
+                    }
+                }
+            }
+
+            $data['stock'] = [
+                'total' => collect($stockDetallesProcesados)->sum('cantidad'),
+                'detalles' => $stockDetallesProcesados
+            ];
+        }
+
+        // 3. Actualizar el producto de la base de datos
+        $producto->update($data);
+
+        return $this->success($producto, 'Producto actualizado correctamente', 200);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $nombre)
+    public function destroy(Producto $producto)
     {
-        //
-        $producto = Producto::where('nombre', $nombre)->first();
-        if (!$producto) {
-            return $this->error('Producto no encontrado', 404);
+        try {
+            // 1. Eliminar la imagen principal
+            $this->imageService->eliminar($producto->imagenPrincipal);
+
+            // 2. Eliminar todas las imágenes del stock
+            if (isset($producto->stock['detalles']) && is_array($producto->stock['detalles'])) {
+                foreach ($producto->stock['detalles'] as $detalle) {
+                    if (isset($detalle['imagenes']) && is_array($detalle['imagenes'])) {
+                        foreach ($detalle['imagenes'] as $imagen) {
+                            $this->imageService->eliminar($imagen);
+                        }
+                    }
+                }
+            }
+
+            // 3. Eliminar el producto de la base de datos
+            $producto->delete();
+
+            return $this->success(null, 'Producto eliminado con éxito', 204);
+
+        } catch (\Exception $e) {
+            return $this->error('Error al eliminar el producto', 500, $e->getMessage());
         }
-        // $producto->delete();
-        $producto->estado = 'Inactivo';
-        return $this->success($nombre, 'Producto eliminado con éxito', 200);
     }
 }

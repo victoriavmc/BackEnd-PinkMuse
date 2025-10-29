@@ -7,6 +7,7 @@ use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
+use App\Services\ImageService; // Importar el servicio
 
 class UsuarioController
 {
@@ -15,9 +16,19 @@ class UsuarioController
      */
     use ApiResponse;
 
+    // --- INYECCIÓN DE DEPENDENCIAS ---
+    private ImageService $imageService;
+
+    /**
+     * Inyectar el ImageService en el constructor.
+     */
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
     public function index()
     {
-        //
         $usuarios = Usuario::all();
         if ($usuarios->isEmpty()) {
             return $this->error('No se encontraron usuarios', 404);
@@ -26,94 +37,10 @@ class UsuarioController
     }
 
     /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        // SIN OPTIMIZAR, PERO PORQUE YA ESTA EN AUTHCONTROLLER
-        return $this->error('No implementado. Use el endpoint de registro.', 501);
-        // $validator = Validator::make($request->all(), [
-        //     'nombre' => 'required|string|max:255',
-        //     'apellido' => 'required|string|max:255',
-        //     'nacionalidad' => 'required|string|max:255',
-        //     'fechaNacimiento' => 'required|date',
-        //     'correo' => 'required|string|email|max:255|unique:usuarios,email',
-        //     'password' => 'required|string|min:8',
-        //     'perfil' => 'required|array',
-        //     'perfil.username' => 'required|string|max:255',
-        //     'perfil.imagenPrincipal' => 'nullable|string|max:500',
-        //     'preferenciaNotificacion' => 'nullable|array',
-        //     'rol_id' => 'required|string',
-        //     'estado' => 'required|string|in:activo,inactivo',
-        // ]);
-
-        // if ($validator->fails()) {
-        //     return response()->json([
-        //         'message' => 'Error de validación',
-        //         'errors' => $validator->errors(),
-        //         'status' => 400
-        //     ], 400);
-        // }
-
-        // if (Usuario::where('correo', $request->correo)->exists()) {
-        //     return response()->json([
-        //         'message' => 'El correo ya existe',
-        //         'status' => 409
-        //     ], 409);
-        // }
-
-        // if (Usuario::where('perfil.username', $request->input('perfil.username'))->exists()) {
-        //     return response()->json([
-        //         'message' => 'El username ya existe',
-        //         'status' => 409
-        //     ], 409);
-        // }
-
-        // // Asumiendo que rol_id es string
-        // $rol = Rol::find($request->rol_id); // find automáticamente convierte a ObjectId
-        // if (!$rol) {
-        //     return response()->json([
-        //         'message' => 'El rol no existe',
-        //         'status' => 404
-        //     ], 404);
-        // }
-
-        // //
-        // $usuario = new Usuario();
-        // $usuario->nombre = $request->nombre;
-        // $usuario->apellido = $request->apellido;
-        // $usuario->nacionalidad = $request->nacionalidad;
-        // $usuario->fechaNacimiento = $request->fechaNacimiento;
-        // $usuario->correo = $request->correo;
-        // $usuario->password = bcrypt($request->password); // Encriptar la contraseña
-        // $usuario->perfil = [
-        //     'username' => $request->input('perfil.username'),
-        //     'imagenPrincipal' => $request->input('perfil.imagenPrincipal') ?? null
-        // ];
-        // $usuario->preferenciaNotificacion = $request->preferenciaNotificacion ?? [];
-        // $usuario->rol_id = $request->rol_id;
-        // $usuario->estado = $request->estado;
-        // $usuario->save();
-
-        // if (!$usuario) {
-        //     return response()->json([
-        //         'message' => 'Error al crear el usuario',
-        //         'status' => 500
-        //     ], 500);
-        // }
-        // return response()->json([
-        //     'message' => 'Usuario creado exitosamente',
-        //     'usuario' => $usuario,
-        //     'status' => 201
-        // ], 201);
-    }
-
-    /**
      * Display the specified resource.
      */
     public function show(string $username)
     {
-        //
         $usuario = Usuario::where('perfil.username', $username)->first();
         if (!$usuario) {
             return $this->error('Usuario no encontrado', 404);
@@ -126,13 +53,11 @@ class UsuarioController
      */
     public function update(Request $request, string $username)
     {
-        //
         $usuario = Usuario::where('perfil.username', $username)->first();
         if (!$usuario) {
             return $this->error('Usuario no encontrado', 404);
         }
 
-        // Validación
         $validator = Validator::make($request->all(), [
             'nombre' => 'sometimes|required|string|max:255',
             'apellido' => 'sometimes|required|string|max:255',
@@ -140,9 +65,9 @@ class UsuarioController
             'fechaNacimiento' => 'sometimes|required|date',
             'correo' => 'prohibited',
             'password' => 'sometimes|required|string|min:8',
-            'perfil' => 'sometimes|required|array',
+            'perfil' => 'sometimes|array',
             'perfil.username' => 'prohibited',
-            'perfil.imagenPrincipal' => 'nullable|string|max:500',
+            'perfil.imagenPrincipal' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'preferenciaNotificacion' => 'nullable|array',
             'rol_id' => 'sometimes|required|string',
             'estado' => 'sometimes|required|string|in:activo,inactivo,teta',
@@ -151,6 +76,8 @@ class UsuarioController
         if ($validator->fails()) {
             return $this->error('Error de validación', 400, $validator->errors());
         }
+        
+        $data = $validator->validated();
 
         // Actualizar rol si se envía
         if ($request->filled('rol_id')) {
@@ -173,15 +100,23 @@ class UsuarioController
             $usuario->password = bcrypt($request->password);
         }
 
-        // Actualizar perfil (solo imagenPrincipal)
-        if ($request->has('perfil') && is_array($request->perfil)) {
-            $perfil = $usuario->perfil ?? [];
+        $perfil = $usuario->perfil ?? [];
+        if ($request->hasFile('perfil.imagenPrincipal')) {
+            // 1. Eliminar la imagen anterior (si existe)
+            $oldImage = $perfil['imagenPrincipal'] ?? null;
+            $this->imageService->eliminar($oldImage);
 
-            // Solo actualizar imagenPrincipal si se envía
-            if (isset($request->perfil['imagenPrincipal'])) {
-                $perfil['imagenPrincipal'] = $request->perfil['imagenPrincipal'];
-            }
-
+            // 2. Guardar la nueva imagen
+            $rutas = $this->imageService->guardar(
+                $request->file('perfil.imagenPrincipal'),
+                'usuario',
+                $username,
+                false,
+                0
+            );
+            
+            // 3. Asignar la nueva ruta
+            $perfil['imagenPrincipal'] = $rutas[0];
             $usuario->perfil = $perfil;
         }
 
@@ -204,13 +139,23 @@ class UsuarioController
      */
     public function destroy(string $username)
     {
-        //
         $usuario = Usuario::where('perfil.username', $username)->first();
         if (!$usuario) {
             return $this->error('Usuario no encontrado', 404);
         }
-        // Borramos o Modificamos y solo anulamos el correo con su username?
-        $usuario->delete();
-        return $this->success(null, 'Usuario eliminado exitosamente', 200);
+
+        try {
+            // 1. Eliminar la imagen de perfil (si existe)
+            $oldImage = $usuario->perfil['imagenPrincipal'] ?? null;
+            $this->imageService->eliminar($oldImage);
+            
+            // 2. Borramos el usuario
+            $usuario->delete();
+            
+            return $this->success(null, 'Usuario eliminado exitosamente', 204);
+
+        } catch (\Exception $e) {
+            return $this->error('Error al eliminar el usuario', 500, $e->getMessage());
+        }
     }
 }

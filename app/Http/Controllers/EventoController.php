@@ -6,16 +6,28 @@ use App\Models\Evento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
+use App\Services\ImageService; // Importar el servicio
 
 class EventoController
 {
     use ApiResponse;
+
+    // --- INYECCIÓN DE DEPENDENCIAS ---
+    private ImageService $imageService;
+
+    /**
+     * Inyectar el ImageService en el constructor.
+     */
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
         $eventos = Evento::all();
         if ($eventos->isEmpty()) {
             return $this->error("No se encontraron eventos", 404);
@@ -23,12 +35,11 @@ class EventoController
         return $this->success($eventos, "Eventos obtenidos exitosamente", 200);
     }
 
-    // Validator
     public function validatorEvento(Request $request, $isUpdate = false)
     {
         if ($isUpdate) {
             $validator = Validator::make($request->all(), [
-                'nombreEvento' => 'prohibited', // no se puede modificar
+                'nombreEvento' => 'prohibited',
                 'nombreLugar' => 'sometimes|required|string|max:255',
                 'direccion' => 'nullable|array',
                 'direccion.calle' => 'nullable|string|max:255',
@@ -47,7 +58,7 @@ class EventoController
                 'artistasExtras' => 'nullable|array',
                 'artistasExtras.*' => 'string|max:255',
                 'estado' => 'sometimes|required|string|max:50',
-                'imagenPrincipal' => 'nullable|string|max:255',
+                'imagenPrincipal' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             ]);
         } else {
             $validator = Validator::make($request->all(), [
@@ -70,7 +81,7 @@ class EventoController
                 'artistasExtras' => 'nullable|array',
                 'artistasExtras.*' => 'string|max:255',
                 'estado' => 'required|string|max:50',
-                'imagenPrincipal' => 'nullable|string|max:255',
+                'imagenPrincipal' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             ]);
         }
         return $validator;
@@ -97,6 +108,19 @@ class EventoController
         if (Evento::where('nombreEvento', $request->nombreEvento)->exists()) {
             return $this->error('El evento ya existe', 409,);
         }
+
+        $rutasImagenPrincipal = null;
+        if ($request->hasFile('imagenPrincipal')) {
+            $rutas = $this->imageService->guardar(
+                $request->file('imagenPrincipal'),
+                'evento',
+                $request->nombreEvento,
+                false,
+                0
+            );
+            $rutasImagenPrincipal = $rutas[0];
+        }
+
         $evento = new Evento();
         $evento->nombreEvento = $request->nombreEvento;
         $evento->nombreLugar = $request->nombreLugar;
@@ -105,7 +129,10 @@ class EventoController
         $evento->hora = $request->hora;
         $evento->entradas = $request->entradas;
         $evento->estado = $request->estado;
-        $evento->imagenPrincipal = $request->imagenPrincipal ?? null;
+        $evento->imagenPrincipal = $rutasImagenPrincipal;
+        $evento->coordenadas = $request->coordenadas ?? null;
+        $evento->artistasExtras = $request->artistasExtras ?? null;
+
 
         $evento->save();
 
@@ -144,6 +171,26 @@ class EventoController
             return $this->error('Error de validación', 400, $validator->errors()->first());
         }
 
+        $data = $validator->validated();
+
+        if ($request->hasFile('imagenPrincipal')) {
+            // 1. Eliminar la imagen anterior
+            $this->imageService->eliminar($evento->imagenPrincipal);
+
+            // 2. Guardar la nueva
+            $rutas = $this->imageService->guardar(
+                $request->file('imagenPrincipal'),
+                'evento',
+                $evento->nombreEvento,
+                false,
+                0
+            );
+
+            // 3. Asignar la nueva ruta a los datos validados
+            $data['imagenPrincipal'] = $rutas[0];
+        }
+
+        // Lógica de actualización de entradas (existente)
         if ($request->has('entradas')) {
             $entradasActuales = $evento->entradas ?? [];
             $tiposActuales = array_column($entradasActuales, 'tipo');
@@ -172,20 +219,12 @@ class EventoController
                     $entradasActuales[] = $entradaNueva;
                 }
             }
-
-            $evento->entradas = $entradasActuales;
-        }
-        // Si viene dirección, garantizamos que sea objeto
-        if ($request->has('direccion')) {
-            $evento->direccion = $request->direccion;
+            // Asignar las entradas actualizadas a los datos
+            $data['entradas'] = $entradasActuales;
         }
 
-        // Actualizar campos que vienen en la request
-        foreach ($request->except('nombreEvento') as $key => $value) {
-            $evento->{$key} = $value;
-        }
-
-        $evento->save();
+        // Actualizar campos del evento
+        $evento->update($data);
 
         return $this->success($evento, 'Evento actualizado exitosamente', 200);
     }
@@ -202,7 +241,7 @@ class EventoController
             return $this->error('Evento no encontrado', 404);
         }
 
-        // Si se envía 'tipo', borramos solo esa entrada
+        // Si se envía 'tipo', borramos solo esa entrada (lógica existente)
         if ($request->has('tipo')) {
             $tipo = $request->input('tipo');
             $entradasActuales = $evento->entradas ?? [];
@@ -213,7 +252,7 @@ class EventoController
 
             // Si no se encontró la entrada
             if (count($entradasFiltradas) === count($entradasActuales)) {
-                return $this->error("La entrada '{$tipo}'  no existe en este evento", 404);
+                return $this->error("La entrada '{$tipo}'  no existe en este evento", 404);
             }
 
             $evento->entradas = array_values($entradasFiltradas); // reindexar
@@ -223,8 +262,17 @@ class EventoController
         }
 
         // Si no se envía 'tipoEntrada', borramos todo el evento
-        $evento->delete();
+        try {
+            // 1. Eliminar la imagen principal (si existe)
+            $this->imageService->eliminar($evento->imagenPrincipal);
 
-        return $this->success(null, 'Evento eliminado exitosamente', 200);
+            // 2. Borrar el evento de la BD
+            $evento->delete();
+
+            return $this->success(null, 'Evento eliminado exitosamente', 204); // 204 No Content
+
+        } catch (\Exception $e) {
+            return $this->error('Error al eliminar el evento', 500, $e->getMessage());
+        }
     }
 }
