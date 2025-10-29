@@ -7,6 +7,9 @@ use MongoDB\Laravel\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
+use App\Models\Rol;
+use App\Services\NotificationService;
+use MongoDB\BSON\ObjectId;
 
 class Usuario extends Authenticatable
 {
@@ -23,7 +26,6 @@ class Usuario extends Authenticatable
         'password',
         'rol',
         'perfil',
-        'preferenciaNotificacion',
         'estado',
         'api_tokens'
     ];
@@ -39,30 +41,98 @@ class Usuario extends Authenticatable
         'api_tokens' => 'array',
     ];
 
-    // Nombre → Capitalizado
+    protected $appends = ['rol_nombre'];
+
+
+
+
+    
+
+
+    protected static $roleNameCache = [];
+
+    // Nombre + Capitalizado
     public function setNombreAttribute($value)
     {
         $this->attributes['nombre'] = ucfirst(strtolower($value));
     }
 
-    // Apellido → Capitalizado
+    // Apellido + Capitalizado
     public function setApellidoAttribute($value)
     {
         $this->attributes['apellido'] = ucfirst(strtolower($value));
     }
 
-    // Nacionalidad → Capitalizado
+    // Nacionalidad + Capitalizado
     public function setNacionalidadAttribute($value)
     {
         $this->attributes['nacionalidad'] = ucfirst(strtolower($value));
     }
 
-    // Correo → Minúsculas
+    // Correo + Min�sculas
     public function setCorreoAttribute($value)
     {
         $this->attributes['correo'] = strtolower($value);
     }
-    
+
+    public function getRolIdAttribute($value)
+    {
+        $normalized = $this->normalizeObjectId($value);
+        return $normalized ?? $value;
+    }
+
+    public function getRolAttribute($value)
+    {
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+
+        return $this->resolveRoleName();
+    }
+
+    public function getRolNombreAttribute()
+    {
+        return $this->getRolAttribute($this->attributes['rol'] ?? null);
+    }
+
+    protected function normalizeObjectId($value)
+    {
+        if ($value instanceof ObjectId) {
+            return (string) $value;
+        }
+
+        if (is_array($value) && isset($value['$oid'])) {
+            return (string) $value['$oid'];
+        }
+
+        if (is_object($value) && isset($value->{'$oid'})) {
+            return (string) $value->{'$oid'};
+        }
+
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+
+        return null;
+    }
+
+    protected function resolveRoleName()
+    {
+        $roleId = $this->normalizeObjectId($this->attributes['rol_id'] ?? null);
+
+        if (!$roleId) {
+            $raw = $this->attributes['rol'] ?? null;
+            return is_string($raw) && trim($raw) !== '' ? trim($raw) : null;
+        }
+
+        if (!array_key_exists($roleId, self::$roleNameCache)) {
+            $role = Rol::find($roleId);
+            self::$roleNameCache[$roleId] = $role ? $role->rol : null;
+        }
+
+        return self::$roleNameCache[$roleId] ?? null;
+    }
+
     /**
      * Crear un token de acceso para el usuario
      */
@@ -167,7 +237,7 @@ class Usuario extends Authenticatable
     }
 
     /**
-     * Verificar si el usuario puede realizar una acción con el token actual
+     * Verificar si el usuario puede realizar una acci�n con el token actual
      */
     public function tokenCan($ability)
     {
@@ -222,7 +292,7 @@ class Usuario extends Authenticatable
     }
 
     /**
-     * Revocar un token específico
+     * Revocar un token espec�fico
      */
     public function revokeToken($tokenId)
     {
@@ -239,9 +309,9 @@ class Usuario extends Authenticatable
         $this->update(['api_tokens' => []]);
     }
 
-    // Relación con Rol usando el campo 'rol' como identificador
+    // Relaci�n con Rol usando rol_id como referencia
     public function rolRelacion()
     {
-        return $this->belongsTo(Rol::class, 'rol', 'rol');
+        return $this->belongsTo(Rol::class, 'rol_id', '_id');
     }
 }
