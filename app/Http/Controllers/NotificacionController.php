@@ -13,6 +13,11 @@ class NotificacionController
 {
     use ApiResponse;
 
+    public function __construct()
+    {
+        // El constructor puede estar vacío si no hay dependencias a nivel de controlador.
+    }
+
     public function index(Request $request)
     {
         $user = $request->user();

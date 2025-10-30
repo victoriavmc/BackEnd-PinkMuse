@@ -8,6 +8,7 @@ use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\RedSocialController;
 use App\Http\Controllers\EventoController;
+use App\Http\Controllers\ImageController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\UsuarioController;
@@ -29,6 +30,8 @@ use App\Http\Controllers\ReaccionController;
 
 Route::post('/registro', [AuthController::class, 'registro']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/imagenes', [ImageController::class, 'store']);
+Route::delete('/imagenes', [ImageController::class, 'destroy']);
 Route::middleware('mongo.auth')->group(function () {
     Route::post('/cerrarsesion', [AuthController::class, 'cerrarsesion']);
     Route::get('/usuario', function (Request $request) {
@@ -87,8 +90,9 @@ Route::controller(EventoController::class)->group(function () {
     Route::get('/eventos', 'index'); // List all events
     Route::post('/eventos', 'store'); // Create a new event
     Route::get('/eventos/{id}', 'show'); // Get a specific event
-    Route::put('/eventos/{id}', 'update'); // Update a specific event
-    Route::delete('/eventos/{id}', 'destroy'); // Delete a specific event
+    Route::post('/eventos/{nombreEvento}/imagen', 'subirImagen'); // Upload image for an event
+    Route::put('/eventos/{nombreEvento}', 'update'); // Update a specific event
+    Route::delete('/eventos/{nombreEvento}', 'destroy'); // Delete a specific event
 });
 
 // Noticia

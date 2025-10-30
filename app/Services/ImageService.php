@@ -14,21 +14,23 @@ class ImageService
      * El manager de Intervention Image.
      */
     private ImageManager $manager;
+    private string $disk;
 
     public function __construct()
     {
         $this->manager = new ImageManager(new Driver());
+        $this->disk = config('filesystems.image_disk', config('filesystems.default', 'public'));
     }
 
     /**
-     * Guarda las imágenes en el storage según el tipo especificado
+     * Guarda las im?genes en el storage seg?n el tipo especificado
      *
      * @param UploadFile|array $file Archivo(s) subido(s) (UploadedFile o array de UploadedFile)
      * @param string $tipo Tipo (producto, usuario, etc.)
      * @param string $nombreBase Nombre base para el archivo (sin slug)
      * @param bool $multiple Indica si $file es un array de archivos
-     * @param int|null $principalIndex Índice del archivo que es principal
-     * @return array Rutas de las imágenes procesadas (PNG y WebP)
+     * @param int|null $principalIndex ?ndice del archivo que es principal
+     * @return array Rutas de las im?genes procesadas (PNG y WebP)
      * @throws \Exception Si el tipo de imagen no es soportado
      */
     public function guardar($file, string $tipo, string $nombreBase, bool $multiple = false, ?int $principalIndex = null): array
@@ -61,9 +63,9 @@ class ImageService
      * Convierte la imagen a PNG y WebP y las almacena
      *
      * @param mixed $file Archivo de imagen (UploadedFile)
-     * @param string $path Ruta sin extensión
-     * @param int|null $index Índice para múltiples imágenes
-     * @param int|null $principalIndex Índice que marca la imagen principal
+     * @param string $path Ruta sin extensi?n
+     * @param int|null $index ?ndice para m?ltiples im?genes
+     * @param int|null $principalIndex ?ndice que marca la imagen principal
      * @return array Rutas PNG, WebP y si es principal
      */
     private function procesarImagen($file, string $path, ?int $index = null, ?int $principalIndex = null): array
@@ -74,12 +76,13 @@ class ImageService
         // $img->scaleDown(width: 1080); // Por ejemplo
 
         // Guardar en PNG
+        $disk = Storage::disk($this->disk);
         $pngPath = "{$path}.png";
-        Storage::put($pngPath, $img->toPng());
+        $disk->put($pngPath, $img->toPng());
 
         // Guardar en WebP
         $webpPath = "{$path}.webp";
-        Storage::put($webpPath, $img->toWebp(70));
+        $disk->put($webpPath, $img->toWebp(70));
 
         return [
             'png' => $pngPath,
@@ -89,22 +92,97 @@ class ImageService
     }
 
     /**
-     * Elimina las imágenes del storage (versión implementada)
+     * Elimina las im?genes del storage (versi?n implementada)
      *
-     * @param array|null $rutasArray El array de rutas ['png' => 'path.png', 'webp' => 'path.webp']
+     * @param mixed $entrada Rutas a eliminar (cadena o arreglo con rutas generadas)
      * @return bool True si se eliminaron, false si hubo un error o no se proporcionaron rutas.
      */
-    public function eliminar(?array $rutasArray): bool
+    public function eliminar($entrada): bool
     {
-        if (is_array($rutasArray) && !empty($rutasArray['png']) && !empty($rutasArray['webp'])) {
-            // Elimina ambos archivos
-            return Storage::delete([$rutasArray['png'], $rutasArray['webp']]);
+        $paths = $this->extractPaths($entrada);
+
+        if (empty($paths)) {
+            return false;
         }
 
-        if (is_string($rutasArray) && Storage::exists($rutasArray)) {
-            return Storage::delete($rutasArray);
+        $disk = Storage::disk($this->disk);
+        $objetivos = [];
+
+        foreach ($paths as $path) {
+            $objetivos[] = $path;
+            $alterno = $this->buildAlternatePath($path);
+            if ($alterno) {
+                $objetivos[] = $alterno;
+            }
         }
 
-        return false;
+        $deleted = false;
+        foreach (array_unique($objetivos) as $objetivo) {
+            if ($disk->exists($objetivo) && $disk->delete($objetivo)) {
+                $deleted = true;
+            }
+        }
+
+        return $deleted;
+    }
+
+    private function extractPaths($entrada): array
+    {
+        if (is_string($entrada)) {
+            $normalized = $this->normalizePath($entrada);
+            if ($normalized && !str_starts_with($normalized, 'http')) {
+                return [$normalized];
+            }
+            return [];
+        }
+
+        if (is_array($entrada)) {
+            $paths = [];
+            foreach ($entrada as $value) {
+                if (is_string($value)) {
+                    $normalized = $this->normalizePath($value);
+                    if ($normalized && !str_starts_with($normalized, 'http')) {
+                        $paths[] = $normalized;
+                    }
+                } elseif (is_array($value)) {
+                    $paths = array_merge($paths, $this->extractPaths($value));
+                }
+            }
+            return array_filter($paths);
+        }
+
+        return [];
+    }
+
+    private function buildAlternatePath(string $path): ?string
+    {
+        $info = pathinfo($path);
+        if (empty($info['extension'])) {
+            return null;
+        }
+
+        $extension = strtolower($info['extension']);
+        if (!in_array($extension, ['png', 'webp'], true)) {
+            return null;
+        }
+
+        $alternateExtension = $extension === 'png' ? 'webp' : 'png';
+        $dirname = $info['dirname'] ?? '';
+        $dirname = ($dirname === '.' || $dirname === '') ? '' : $dirname . '/';
+
+        return $dirname . $info['filename'] . '.' . $alternateExtension;
+    }
+    private function normalizePath(string $path): string
+    {
+        $trimmed = ltrim($path, '/');
+
+        if (str_starts_with($trimmed, 'storage/')) {
+            $trimmed = substr($trimmed, strlen('storage/'));
+        }
+
+        return $trimmed;
     }
 }
+
+
+
