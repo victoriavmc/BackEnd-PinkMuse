@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Noticia;
 use App\Models\Reaccion;
 use App\Services\NotificationService;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
@@ -14,11 +15,20 @@ class NoticiaController
 {
     use ApiResponse;
 
-    protected NotificationService $notificationService;
+    /**
+     * @var NotificationService
+     */
+    protected $notificationService;
 
-    public function __construct(NotificationService $notificationService)
+    /**
+     * @var ImageService
+     */
+    protected $imageService;
+
+    public function __construct(NotificationService $notificationService, ImageService $imageService)
     {
         $this->notificationService = $notificationService;
+        $this->imageService = $imageService;
     }
 
     protected function normalizeId($value): ?string
@@ -184,9 +194,9 @@ class NoticiaController
             'tipoActividad' => 'prohibited',
             'titulo' => 'sometimes|string|max:255',
             'descripcion' => 'sometimes|string',
-            'imagenPrincipal' => 'nullable|string|max:255',
+            'imagenPrincipal' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'imagenes' => 'nullable|array',
-            'imagenes.*' => 'string|max:255',
+            'imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
             'fecha' => 'sometimes|date',
             'habilitacionComentarios' => 'sometimes|boolean',
             'habilitacionAcciones' => 'sometimes|string|in:si,no',
@@ -198,11 +208,11 @@ class NoticiaController
             'etiquetas.*' => 'string|max:255',
         ] : [
             'tipoActividad' => 'required|string|in:noticia',
-            'titulo' => 'required|string|max:255',
+            'titulo' => 'required|string|max:255|unique:noticias,titulo',
             'descripcion' => 'required|string',
-            'imagenPrincipal' => 'nullable|string|max:255',
+            'imagenPrincipal' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'imagenes' => 'nullable|array',
-            'imagenes.*' => 'string|max:255',
+            'imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
             'fecha' => 'required|date',
             'habilitacionComentarios' => 'required|boolean',
             'habilitacionAcciones' => 'required|string|in:si,no',
@@ -227,39 +237,46 @@ class NoticiaController
             return $this->error('Error de validacion', 400, $validator->errors());
         }
 
+        // 'unique' en el validador ya maneja esto, pero una doble verificación es segura.
         if (Noticia::where('titulo', $request->titulo)->exists()) {
             return $this->error('Ya existe una noticia con el mismo titulo', 409);
         }
 
-        $payload = $request->only([
-            'tipoActividad',
-            'titulo',
-            'descripcion',
-            'resumen',
-            'imagenPrincipal',
-            'imagenes',
-            'fecha',
-            'habilitacionComentarios',
-            'habilitacionAcciones',
-            'autor',
-            'categoria',
-            'fuente',
-            'etiquetas',
-        ]);
+        // Obtenemos los datos validados
+        $data = $validator->validated();
+        $nombreBaseNoticia = $data['titulo'];
 
-        if ($request->has('habilitacionComentarios')) {
-            $payload['habilitacionComentarios'] = (bool) $request->habilitacionComentarios;
+        // 1. Procesar imagenPrincipal
+        $rutasImagenPrincipal = null;
+        if ($request->hasFile('imagenPrincipal')) {
+            $rutas = $this->imageService->guardar(
+                $request->file('imagenPrincipal'),
+                'noticia',
+                $nombreBaseNoticia . '_principal',
+                false,
+                0
+            );
+            $rutasImagenPrincipal = $rutas[0];
         }
 
-        if ($request->has('imagenes')) {
-            $payload['imagenes'] = $payload['imagenes'] ? array_values($payload['imagenes']) : [];
+        // 2. Procesar 'imagenes'
+        $rutasImagenes = [];
+        if ($request->hasFile('imagenes')) {
+            $rutasImagenes = $this->imageService->guardar(
+                $request->file('imagenes'),
+                'noticia',
+                $nombreBaseNoticia,
+                true,
+                0
+            );
         }
 
-        if ($request->has('etiquetas')) {
-            $payload['etiquetas'] = $payload['etiquetas'] ? array_values($payload['etiquetas']) : [];
-        }
+        // 3. Asignar rutas a los datos
+        $data['imagenPrincipal'] = $rutasImagenPrincipal;
+        $data['imagenes'] = $rutasImagenes;
 
-        $noticia = Noticia::create($payload);
+        // 4. Crear la noticia
+        $noticia = Noticia::create($data);
 
         if (!$noticia) {
             return $this->error('Error al crear la noticia', 500);
@@ -312,44 +329,50 @@ class NoticiaController
 
         $validator = $this->validatorNoticia($request, true);
         if ($validator->fails()) {
-            return $this->error('Error de validacion', 400, $validator->errors());
+            return $this->error('Error de validación', 400, $validator->errors());
         }
 
-        $updates = $request->only([
-            'titulo',
-            'descripcion',
-            'resumen',
-            'imagenPrincipal',
-            'imagenes',
-            'fecha',
-            'habilitacionComentarios',
-            'habilitacionAcciones',
-            'autor',
-            'categoria',
-            'fuente',
-            'etiquetas',
-        ]);
+        $data = $validator->validated();
+        // Usar el título original para la ruta base
+        $nombreBaseNoticia = $noticia->titulo;
 
-        if (array_key_exists('titulo', $updates) && $updates['titulo'] !== $noticia->titulo) {
-            if (Noticia::where('titulo', $updates['titulo'])->where('_id', '!=', $noticia->_id)->exists()) {
-                return $this->error('Ya existe una noticia con el mismo titulo', 409);
+        // 1. Actualizar imagenPrincipal (si se envió una nueva)
+        if ($request->hasFile('imagenPrincipal')) {
+            // Eliminar la anterior
+            $this->imageService->eliminar($noticia->imagenPrincipal);
+
+            // Guardar la nueva
+            $rutas = $this->imageService->guardar(
+                $request->file('imagenPrincipal'),
+                'noticia',
+                $nombreBaseNoticia . '_principal',
+                false,
+                0
+            );
+            $data['imagenPrincipal'] = $rutas[0];
+        }
+
+        // 2. Actualizar 'imagenes' (si se enviaron nuevas)
+        if ($request->hasFile('imagenes')) {
+            // Eliminar todas las imágenes antiguas
+            if (is_array($noticia->imagenes)) {
+                foreach ($noticia->imagenes as $oldImage) {
+                    $this->imageService->eliminar($oldImage);
+                }
             }
+
+            // Guardar las nuevas
+            $data['imagenes'] = $this->imageService->guardar(
+                $request->file('imagenes'),
+                'noticia',
+                $nombreBaseNoticia,
+                true,
+                0
+            );
         }
 
-        if (array_key_exists('habilitacionComentarios', $updates)) {
-            $updates['habilitacionComentarios'] = (bool) $updates['habilitacionComentarios'];
-        }
-
-        if (array_key_exists('imagenes', $updates)) {
-            $updates['imagenes'] = $updates['imagenes'] ? array_values($updates['imagenes']) : [];
-        }
-
-        if (array_key_exists('etiquetas', $updates)) {
-            $updates['etiquetas'] = $updates['etiquetas'] ? array_values($updates['etiquetas']) : [];
-        }
-
-        $noticia->fill($updates);
-        $noticia->save();
+        // 3. Actualizar la noticia en la BD
+        $noticia->update($data);
 
         return $this->success($noticia, 'Noticia actualizada exitosamente', 200);
     }
@@ -364,8 +387,23 @@ class NoticiaController
             return $this->error('Noticia no encontrada', 404);
         }
 
-        $noticia->delete();
+        try {
+            // 1. Eliminar la imagen principal
+            $this->imageService->eliminar($noticia->imagenPrincipal);
 
-        return $this->success($noticia, 'Noticia eliminada exitosamente', 200);
+            // 2. Eliminar todas las imágenes del array 'imagenes'
+            if (is_array($noticia->imagenes)) {
+                foreach ($noticia->imagenes as $imagen) {
+                    $this->imageService->eliminar($imagen);
+                }
+            }
+
+            // 3. Eliminar la noticia de la base de datos
+            $noticia->delete();
+
+            return $this->success(null, 'Noticia eliminada exitosamente', 204);
+        } catch (\Exception $e) {
+            return $this->error('Error al eliminar la noticia', 500, $e->getMessage());
+        }
     }
 }

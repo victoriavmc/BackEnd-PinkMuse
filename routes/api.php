@@ -57,7 +57,6 @@ Route::controller(RolController::class)->group(function () {
 // Usuarios
 Route::controller(UsuarioController::class)->group(function () {
     Route::get('/usuarios', 'index'); // List all users
-    Route::post('/usuarios', 'store'); // Create a new user
     Route::get('/usuarios/{id}', 'show'); // Get a specific user
     Route::put('/usuarios/{id}', 'update'); // Update a specific user
     Route::delete('/usuarios/{id}', 'destroy'); // Delete a specific user
