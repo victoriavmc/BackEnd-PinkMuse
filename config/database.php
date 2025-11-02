@@ -31,11 +31,11 @@ return [
 
     'connections' => [
         'mongodb' => [
-            'driver'   => 'mongodb',
-            'dsn'      => env('DB_URI', ''),
+            'driver' => 'mongodb',
+            'dsn' => env('DB_URI', ''),
             'database' => env('DB_DATABASE', 'pinkmuse'),
-            'options'  => [
-                'ssl' => true,
+            'options' => [
+                'ssl' => env('DB_SSL', true),
             ],
         ],
 

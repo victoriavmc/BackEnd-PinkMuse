@@ -168,13 +168,13 @@ class EventoController
     protected function formatEventDate($value): string
     {
         if (!$value) {
-            return 'prA3ximamente';
+            return 'próximamente';
         }
 
         try {
             return Carbon::parse($value)->format('d/m/Y');
         } catch (\Throwable $exception) {
-            return is_string($value) ? $value : 'prA3ximamente';
+            return is_string($value) ? $value : 'próximamente';
         }
     }
 
