@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Album;
 use App\Models\Producto;
 use App\Models\User;
 use Illuminate\Console\Scheduling\Event;
@@ -21,6 +22,7 @@ class DatabaseSeeder extends Seeder
             EventoSeeder::class,
             ProductoSeeder::class,
             NoticiaSeeder::class,
+            AlbumSeeder::class,
         ]);
     }
 }

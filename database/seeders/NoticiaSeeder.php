@@ -154,7 +154,7 @@ class NoticiaSeeder extends Seeder
             [
                 "tipoActividad" => "noticia",
                 "titulo" => "¿Rubius es el sugardaddy de Gaspi? Fotos y memes alimentan el rumor",
-                "descripcion" => "Usuarios de Twitter explotaron tras ver a Rubius regalarle una consola nueva a Gaspi y comentarle 'te extraño' en Twitch. Aunque ambos lo niegan, los fans ya los apodan 'Rugaspi' y exigen colaboración musical entre ambos.",
+                "descripcion" => "Usuarios de Twitter explotaron tras ver a Rubius regalarle una consola nueva a Gaspi y comentarle 'te extraño' en Twitch. Aunque ambos lo niegan, los fans ya los apodan 'Rugaspi' y exigen colaboración entre ambos.",
                 "resumen" => "El internet arde con los rumores del supuesto romance entre Rubius y Gaspi.",
                 "imagenPrincipal" => "https://tusitio.com/imagenes/rubius-gaspi.jpg",
                 "imagenes" => ["https://tusitio.com/imagenes/rugaspi1.jpg"],
