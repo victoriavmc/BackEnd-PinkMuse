@@ -26,7 +26,7 @@ class AuthController
             'password' => 'required|string|min:8|confirmed',
             'perfil.username' => 'required|string|max:255|unique:usuarios,perfil->username',
             'perfil.imagenPrincipal' => 'nullable|url',
-            'rol_id' => 'sometimes|exists:roles,id',
+            'rol_id' => 'nullable|exists:rols,_id',
         ]);
 
         if ($validator->fails()) {
@@ -41,7 +41,10 @@ class AuthController
             return $this->error('El username ya existe', 409);
         }
 
-        $rol_id = $request->rol_id ?? '68c435957004b39bc425dfce'; // Rol por defecto "Usuario"
+        $rol_id = $request->filled('rol_id') && !empty($request->input('rol_id'))
+        ? $request->input('rol_id')
+        : '6907bc2212642a84a100afc3';
+
         $rol = Rol::find($rol_id);
         if (!$rol) {
             return $this->error('El rol no existe', 404);
