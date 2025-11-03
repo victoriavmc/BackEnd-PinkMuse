@@ -94,9 +94,11 @@ Route::controller(EventoController::class)->group(function () {
     Route::put('/eventos/{nombreEvento}', 'update'); // Update a specific event
     Route::delete('/eventos/{nombreEvento}', 'destroy'); // Delete a specific event
 
-    // Comprar entradas para un evento
-    Route::post('/eventos/{nombreEvento}/comprar', 'guardarComprobanteEvento')
-        ->middleware('auth:sanctum'); 
+
+});
+// Comprar entradas para un evento -- sin proba
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/eventos/{nombreEvento}/comprar', [EventoController::class, 'guardarComprobanteEvento']);
 });
 
 // Noticia
