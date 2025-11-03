@@ -22,8 +22,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/teatroaurora",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_block_1.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 6000],
-                    ["tipo" => "VIP", "precio" => 9000]
+                    ["tipo" => "General","cantidad"=>35, "precio" => 6000],
+                    ["tipo" => "VIP","cantidad"=>30, "precio" => 9000]
                 ],
                 "artistasExtras" => ["Luna Nova"],
                 "estado" => "Finalizado"
@@ -37,8 +37,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/ccrivera",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_block_2.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 7000],
-                    ["tipo" => "VIP", "precio" => 12000]
+                    ["tipo" => "General","cantidad"=>15, "precio" => 7000],
+                    ["tipo" => "VIP","cantidad"=>25, "precio" => 12000]
                 ],
                 "artistasExtras" => ["Ecos del Sur"],
                 "estado" => "Finalizado"
@@ -52,8 +52,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/parquedelsol",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_block_3.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 8000],
-                    ["tipo" => "VIP", "precio" => 15000]
+                    ["tipo" => "General","cantidad"=>55, "precio" => 8000],
+                    ["tipo" => "VIP","cantidad"=>65, "precio" => 15000]
                 ],
                 "artistasExtras" => ["Sideral", "Nova"],
                 "estado" => "Cancelado"
@@ -67,8 +67,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/auditoriovalle",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_instagram_1.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 5000],
-                    ["tipo" => "VIP", "precio" => 9000]
+                    ["tipo" => "General","cantidad"=>75, "precio" => 5000],
+                    ["tipo" => "VIP","cantidad"=>85, "precio" => 9000]
                 ],
                 "artistasExtras" => ["Grupo Horizonte"],
                 "estado" => "Cancelado"
@@ -82,8 +82,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/costaneraarena",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_instagram_2.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 9000],
-                    ["tipo" => "VIP", "precio" => 13000]
+                    ["tipo" => "General","cantidad"=>995, "precio" => 9000],
+                    ["tipo" => "VIP","cantidad"=>5, "precio" => 13000]
                 ],
                 "artistasExtras" => ["Solar Beat"],
                 "estado" => "Finalizado"
@@ -97,8 +97,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/anfiteatrolago",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_instagram_3.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 8500],
-                    ["tipo" => "VIP", "precio" => 11000]
+                    ["tipo" => "General","cantidad"=>15, "precio" => 8500],
+                    ["tipo" => "VIP","cantidad"=>25, "precio" => 11000]
                 ],
                 "artistasExtras" => ["Ecos de Agua"],
                 "estado" => "Suspendido"
@@ -112,11 +112,11 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/teatrosalta",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_instagram_4.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 7000],
-                    ["tipo" => "VIP", "precio" => 9500]
+                    ["tipo" => "General","cantidad"=>25, "precio" => 7000],
+                    ["tipo" => "VIP","cantidad"=>25, "precio" => 9500]
                 ],
                 "artistasExtras" => ["Viento del Alba"],
-                "estado" => "Reprogramado"
+                "estado" => "Suspendido"
             ],
             [
                 "nombreEvento" => "Ecos de Primavera",
@@ -127,8 +127,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/espacioverde",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_instagram_5.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 8000],
-                    ["tipo" => "VIP", "precio" => 12000]
+                    ["tipo" => "General","cantidad"=>15, "precio" => 8000],
+                    ["tipo" => "VIP","cantidad"=>35, "precio" => 12000]
                 ],
                 "artistasExtras" => ["Marea", "Flor del Viento"],
                 "estado" => "Activo"
@@ -142,8 +142,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/puertocultural",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_instagram_6.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 9500],
-                    ["tipo" => "VIP", "precio" => 14000]
+                    ["tipo" => "General","cantidad"=>33, "precio" => 9500],
+                    ["tipo" => "VIP","cantidad"=>34, "precio" => 14000]
                 ],
                 "artistasExtras" => ["Río Azul"],
                 "estado" => "Finalizado"
@@ -157,8 +157,8 @@ class EventoSeeder extends Seeder
                 "maps" => "https://goo.gl/maps/predioelsol",
                 "imagenPrincipal" => "https://raw.githubusercontent.com/LaboratoriaChile/portafolio-sass/blob/master/img/img_instagram_7.jpg",
                 "entradas" => [
-                    ["tipo" => "General", "precio" => 10000],
-                    ["tipo" => "VIP", "precio" => 15000]
+                    ["tipo" => "General","cantidad"=>35, "precio" => 10000],
+                    ["tipo" => "VIP","cantidad"=>36, "precio" => 15000]
                 ],
                 "artistasExtras" => ["Nébula"],
                 "estado" => "Activo"

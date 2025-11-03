@@ -93,6 +93,10 @@ Route::controller(EventoController::class)->group(function () {
     Route::post('/eventos/{nombreEvento}/imagen', 'subirImagen'); // Upload image for an event
     Route::put('/eventos/{nombreEvento}', 'update'); // Update a specific event
     Route::delete('/eventos/{nombreEvento}', 'destroy'); // Delete a specific event
+
+    // Comprar entradas para un evento
+    Route::post('/eventos/{nombreEvento}/comprar', 'guardarComprobanteEvento')
+        ->middleware('auth:sanctum'); 
 });
 
 // Noticia

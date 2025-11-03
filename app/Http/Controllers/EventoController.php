@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Comprobante;
 use App\Models\Evento;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -9,6 +10,9 @@ use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
 use Carbon\Carbon;
 use App\Services\ImageService; // Importar el servicio
+use PhpParser\Node\Expr\Empty_;
+
+use function PHPUnit\Framework\isEmpty;
 
 class EventoController
 {
@@ -378,4 +382,83 @@ class EventoController
             return $this->error('Error al eliminar el evento', 500, $e->getMessage());
         }
     }
+    
+    public function guardarComprobanteEvento(Request $request, string $nombreEvento)
+    {
+        // Saber el evento
+        $evento = Evento::where('nombreEvento', $nombreEvento)->first();
+
+        if (!$evento) {
+            return $this->error('Evento no encontrado', 404);
+        }
+
+        // Solo los eventos Activo o Suspendido permiten compras
+        if ($evento->estado !== 'Activo' && $evento->estado !== 'Suspendido') {
+            return $this->error('El evento no está disponible para compras', 400);
+        }
+
+        // Saber el usuario que compra
+        $usuario = $request->user();
+        if (!$usuario) {
+            return $this->error('Usuario no autenticado', 401);
+        }
+
+        // Validar tipo de entrada
+        if (!$request->has('tipo')) {
+            return $this->error('Debe especificar el tipo de entrada', 400);
+        }
+
+        // Obtener tipo y cantidad
+        $tipo = $request->input('tipo');
+        $cantidadSolicitada = (int) $request->input('cantidad', 1);
+
+        // Buscar la entrada correspondiente
+        $entradaSeleccionada = collect($evento->entradas)->firstWhere('tipo', $tipo);
+        if (!$entradaSeleccionada) {
+            return $this->error("La entrada '{$tipo}' no existe en este evento", 404);
+        }
+
+        // Verificar stock disponible
+        if ($entradaSeleccionada['cantidad'] < $cantidadSolicitada) {
+            return $this->error("No hay suficientes entradas disponibles para '{$tipo}'", 400);
+        }
+
+        // Calcular total
+        $total = $entradaSeleccionada['precio'] * $cantidadSolicitada;
+
+        // Crear número único de comprobante
+        $numeroComprobante = strtoupper(uniqid('CMP-'));
+
+        // Registrar el comprobante
+        $comprobante = Comprobante::create([
+            'numeroComprobante' => $numeroComprobante,
+            'fecha' => now(),
+            'usuario_id' => $usuario->id,
+            'datosPago' => [
+                'metodo' => $request->input('metodo', 'tarjeta'),
+                'estado' => 'pagado'
+            ],
+            'productos' => [
+                [
+                    'evento' => $evento->nombreEvento,
+                    'tipoEntrada' => $tipo,
+                    'cantidad' => $cantidadSolicitada,
+                    'precioUnitario' => $entradaSeleccionada['precio']
+                ]
+            ],
+            'total' => $total,
+            'estado' => 'activo' 
+        ]);
+
+        // Actualizar stock de entradas
+        foreach ($evento->entradas as &$entrada) {
+            if ($entrada['tipo'] === $tipo) {
+                $entrada['cantidad'] -= $cantidadSolicitada;
+            }
+        }
+        $evento->save();
+
+        return $this->success($comprobante, "Comprobante generado correctamente para la entrada '{$tipo}'", 200);
+    }
+
 }
