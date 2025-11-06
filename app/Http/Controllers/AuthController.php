@@ -10,6 +10,10 @@ use App\Models\Usuario;
 use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ResetPasswordMail;
+use App\Models\PasswordResetToken;
 
 class AuthController
 {
@@ -113,5 +117,108 @@ class AuthController
         $request->user()->revokeToken($currentToken->id);
 
         return response()->json(['message' => 'Sesi�n cerrada correctamente']);
+    }
+
+    //
+    public function rules(Request $request, $isForgoten = false)
+    {
+        $rules = [
+            'correo' => 'required|string|email|max:255',
+        ];
+
+        if (!$isForgoten) {
+            $rules['password'] = 'required|string|min:8|max:255';
+            $rules['token'] = 'required|string';
+        }
+
+        return $rules;
+    }
+
+    // Forgoten
+    public function forgotten(Request $request)
+    {
+       $validator = Validator::make($request->all(), $this->rules($request, true));
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $validator->errors(),
+                'status' => 'error'
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $email = $validated['correo'];
+
+        $user = Usuario::where('correo', $email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'No se encontró un usuario con ese correo electrónico',
+                'status' => "error",
+            ], 404);
+        }
+
+        $token = Str::random(64);
+
+        PasswordResetToken::updateOrCreate(
+            ['correo' => $email],
+            [
+                'token' => Hash::make($token),
+                'created_at' => now(),
+            ]
+        );
+
+        $resetUrl = "http://localhost:5173/reset-password?token=$token&email=" . urlencode($email);
+
+        Mail::to($email)->send(new ResetPasswordMail($resetUrl));
+
+        return response()->json([
+            'message' => 'Se ha enviado un enlace para restablecer la contraseña',
+            'status' => "success",
+        ], 200);
+    }
+
+    // Reset
+    public function reset(Request $request)
+    {
+        $validator = Validator::make($request->all(), $this->rules($request, false));
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Error de validación',
+                'errors' => $validator->errors(),
+                'status' => 'error',
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $record = PasswordResetToken::where('correo', $validated['correo'])->first();
+
+        if (!$record || !Hash::check($validated['token'], $record->token)) {
+            return response()->json([
+                'message' => 'Token inválido o expirado',
+                'status' => 'error',
+            ], 400);
+        }
+
+        if (now()->diffInMinutes($record->created_at) > 60) {
+            return response()->json([
+                'message' => 'El token ha expirado',
+                'status' => 'error',
+            ], 400);
+        }
+
+        $user = Usuario::where('correo', $validated['correo'])->firstOrFail();
+        $user->password = bcrypt($validated['password']);
+        $user->save();
+
+        PasswordResetToken::where('correo', $validated['correo'])->delete();
+
+        return response()->json([
+            'message' => 'Contraseña restablecida correctamente',
+            'status' => 'success',
+        ], 200);
     }
 }

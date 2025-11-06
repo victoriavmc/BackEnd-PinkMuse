@@ -30,6 +30,9 @@ use App\Http\Controllers\ReaccionController;
 
 Route::post('/registro', [AuthController::class, 'registro']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/forgotten', [AuthController::class, 'forgotten']); //inner - forgotten
+Route::post('/reset', [AuthController::class, 'reset']);
+
 Route::post('/imagenes', [ImageController::class, 'store']);
 Route::delete('/imagenes', [ImageController::class, 'destroy']);
 Route::middleware('mongo.auth')->group(function () {
