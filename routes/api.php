@@ -17,7 +17,9 @@ use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ComprobanteController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\PreferenciaMP;
 use App\Http\Controllers\ReaccionController;
+use MercadoPago\Client\Preference\PreferenceClient;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,7 +50,6 @@ Route::middleware('mongo.auth')->group(function () {
     Route::delete('/notificaciones/{id}', [NotificacionController::class, 'destroy']);
     Route::patch('/notificaciones/{id}/marcar-leida', [NotificacionController::class, 'markAsRead']);
     Route::post('/notificaciones/marcar-todas-leidas', [NotificacionController::class, 'markAllAsRead']);
-
 });
 
 // Roles
@@ -165,4 +166,11 @@ Route::controller(RedSocialController::class)->group(function () {
     Route::get('/redes-sociales/{id}', 'show'); // Get a specific social network
     Route::put('/redes-sociales/{id}', 'update'); // Update a specific social network
     Route::delete('/redes-sociales/{id}', 'destroy'); // Delete a specific social network
+});
+
+// MP
+Route::controller(PreferenciaMP::class)->group(function () {
+    Route::post('/preferencias', 'crearPreferencia'); // Crear preferencia de pago
+    Route::post('/preferencias/agregar-item', 'agregarItem'); // Agregar ítem a la preferencia
+    Route::get('/preferencias/obtener-items', 'obtenerItems'); // Obtener los ítems actuales
 });

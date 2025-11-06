@@ -423,6 +423,9 @@ class EventoController
             return $this->error("No hay suficientes entradas disponibles para '{$tipo}'", 400);
         }
 
+        // MP
+        
+
         // Calcular total
         $total = $entradaSeleccionada['precio'] * $cantidadSolicitada;
 
