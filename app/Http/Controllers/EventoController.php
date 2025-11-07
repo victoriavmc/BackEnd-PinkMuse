@@ -382,86 +382,163 @@ class EventoController
             return $this->error('Error al eliminar el evento', 500, $e->getMessage());
         }
     }
-    
-    public function guardarComprobanteEvento(Request $request, string $nombreEvento)
+
+    // PREPAGO
+    public function generarSolicitudCompra(Request $request, string $nombreEvento)
     {
-        // Saber el evento
+
         $evento = Evento::where('nombreEvento', $nombreEvento)->first();
 
         if (!$evento) {
             return $this->error('Evento no encontrado', 404);
         }
 
-        // Solo los eventos Activo o Suspendido permiten compras
-        if ($evento->estado !== 'Activo' && $evento->estado !== 'Suspendido') {
+        if (!in_array($evento->estado, ['Activo', 'Suspendido'])) {
             return $this->error('El evento no está disponible para compras', 400);
         }
 
-        // Saber el usuario que compra
+
         $usuario = $request->user();
         if (!$usuario) {
             return $this->error('Usuario no autenticado', 401);
         }
 
-        // Validar tipo de entrada
-        if (!$request->has('tipo')) {
-            return $this->error('Debe especificar el tipo de entrada', 400);
+        $validator = Validator::make($request->all(), [
+            'entradas' => 'required|array|min:1',
+            'entradas.*.tipo' => 'required|string',
+            'entradas.*.cantidad' => 'required|integer|min:1',
+            'metodo' => 'nullable|string|in:mercadopago,tarjeta,efectivo,transferencia',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->error('Error de validación', 422, $validator->errors());
         }
 
-        // Obtener tipo y cantidad
-        $tipo = $request->input('tipo');
-        $cantidadSolicitada = (int) $request->input('cantidad', 1);
+        $entradasSolicitadas = $request->input('entradas');
+        $productos = [];
+        $total = 0;
 
-        // Buscar la entrada correspondiente
-        $entradaSeleccionada = collect($evento->entradas)->firstWhere('tipo', $tipo);
-        if (!$entradaSeleccionada) {
-            return $this->error("La entrada '{$tipo}' no existe en este evento", 404);
+        foreach ($entradasSolicitadas as $entradaReq) {
+            $tipo = $entradaReq['tipo'];
+            $cantidad = (int) $entradaReq['cantidad'];
+
+            $entradaEvento = collect($evento->entradas)->firstWhere('tipo', $tipo);
+            if (!$entradaEvento) {
+                return $this->error("No existe una entrada de tipo '{$tipo}' para este evento", 404);
+            }
+
+            if ($entradaEvento['cantidad'] < $cantidad) {
+                return $this->error("No hay suficientes entradas disponibles para '{$tipo}'", 400);
+            }
+
+            $precio = $entradaEvento['precio'];
+            $subtotal = $precio * $cantidad;
+            $total += $subtotal;
+
+            $productos[] = [
+                'tipoReferencia' => 'evento',
+                'referencia_id' => $evento->_id,
+                'nombreEvento' => $evento->nombreEvento,
+                'tipoEntrada' => $tipo,
+                'cantidad' => $cantidad,
+                'precioUnitario' => $precio,
+                'subtotal' => $subtotal,
+            ];
         }
 
-        // Verificar stock disponible
-        if ($entradaSeleccionada['cantidad'] < $cantidadSolicitada) {
-            return $this->error("No hay suficientes entradas disponibles para '{$tipo}'", 400);
-        }
-
-        // MP
-        
-
-        // Calcular total
-        $total = $entradaSeleccionada['precio'] * $cantidadSolicitada;
-
-        // Crear número único de comprobante
         $numeroComprobante = strtoupper(uniqid('CMP-'));
 
-        // Registrar el comprobante
+        // Crear el comprobante (Se pagara con mercado pago, despues se actualiza con que metodo pago en especifico)
         $comprobante = Comprobante::create([
             'numeroComprobante' => $numeroComprobante,
             'fecha' => now(),
-            'usuario_id' => $usuario->id,
+            'usuario_id' => $usuario->_id,
             'datosPago' => [
-                'metodo' => $request->input('metodo', 'tarjeta'),
-                'estado' => 'pagado'
+                'metodo' => $request->input('metodo', 'mercadopago'),
+                'estado' => 'pendiente'
             ],
-            'productos' => [
-                [
-                    'evento' => $evento->nombreEvento,
-                    'tipoEntrada' => $tipo,
-                    'cantidad' => $cantidadSolicitada,
-                    'precioUnitario' => $entradaSeleccionada['precio']
-                ]
-            ],
+            'productos' => $productos,
             'total' => $total,
-            'estado' => 'activo' 
+            'estado' => 'pendiente',
         ]);
 
-        // Actualizar stock de entradas
-        foreach ($evento->entradas as &$entrada) {
-            if ($entrada['tipo'] === $tipo) {
-                $entrada['cantidad'] -= $cantidadSolicitada;
-            }
-        }
-        $evento->save();
-
-        return $this->success($comprobante, "Comprobante generado correctamente para la entrada '{$tipo}'", 200);
+        return $this->success([
+            'comprobante' => $comprobante,
+            'mensaje' => 'Comprobante generado correctamente. Proceder al pago.',
+        ], 201);
     }
 
+    // PAGO
+    public function generarCompra(Request $request, string $nombreEvento)
+    {
+        $evento = Evento::where('nombreEvento', $nombreEvento)->first();
+
+        if (!$evento) {
+            return $this->error('Evento no encontrado', 404);
+        }
+
+        $usuario = $request->user();
+        if (!$usuario) {
+            return $this->error('Usuario no autenticado', 401);
+        }
+
+        $comprobanteId = $request->input('comprobante_id');
+        if (!$comprobanteId) {
+            return $this->error('Debe especificar el ID del comprobante', 400);
+        }
+
+        $comprobante = Comprobante::where('_id', $comprobanteId)
+            ->where('usuario_id', $usuario->_id)
+            ->where('estado', 'pendiente')
+            ->first();
+
+        if (!$comprobante) {
+            return $this->error('Comprobante no encontrado o ya procesado', 404);
+        }
+
+        // Actualizar estado del comprobante a 'pagado'
+        $comprobante->estado = 'pagado';
+
+        // Actualizar información de pago dentro del array datosPago
+        $comprobante->datosPago = array_merge($comprobante->datosPago ?? [], [
+            'estado' => 'pagado',
+            'fechaPago' => Carbon::now(),
+            'metodo' => $comprobante->datosPago['metodo'] ?? 'mercadopago',
+            'referenciaPago' => $request->input('referencia_pago', null), // Ej: id de MP o código interno
+            'idTransaccion' => $request->input('id_transaccion', null),
+            'montoPagado' => $request->input('monto', $comprobante->total),
+        ]);
+
+        //Limpiar valores nulos antes de guardar
+        $comprobante->datosPago = array_filter($comprobante->datosPago, fn($v) => !is_null($v));
+
+        $comprobante->save();
+
+        // Descontar stock de todas las entradas del comprobante
+        if (empty($comprobante->productos)) {
+            return $this->error('El comprobante no contiene productos válidos', 400);
+        }
+
+        foreach ($comprobante->productos as $producto) {
+            if (($producto['tipoReferencia'] ?? 'evento') !== 'evento') {
+                continue; // Ignora otros productos
+            }
+
+            $tipo = $producto['tipoEntrada'];
+            $cantidadSolicitada = $producto['cantidad'] ?? 0;
+
+            foreach ($evento->entradas as &$entrada) {
+                if ($entrada['tipo'] === $tipo) {
+                    $entrada['cantidad'] = max(0, $entrada['cantidad'] - $cantidadSolicitada);
+                }
+            }
+        }
+
+        $evento->save();
+
+        return $this->success([
+            'comprobante' => $comprobante,
+            'mensaje' => 'Pago confirmado. Stock ajustado correctamente.'
+        ], 200);
+    }
 }

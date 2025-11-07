@@ -102,7 +102,8 @@ Route::controller(EventoController::class)->group(function () {
 });
 // Comprar entradas para un evento -- sin proba
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/eventos/{nombreEvento}/comprar', [EventoController::class, 'guardarComprobanteEvento']);
+    Route::post('/eventos/{nombreEvento}/solicitudCompra', [EventoController::class, 'generarSolicitudCompra']);
+    Route::post('/eventos/{nombreEvento}/compra', [EventoController::class, 'generarCompra']);
 });
 
 // Noticia
