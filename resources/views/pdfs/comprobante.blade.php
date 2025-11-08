@@ -313,19 +313,27 @@
 <header>
     <h1>PinkMuse</h1>
     <div class="logo">
-        <div class="logo-placeholder">LOGO</div>
-        <p>Aldo & VictoriaVMC<br><small>Fashion Store</small></p>
+        <div class="logo-placeholder">
+            @if(!empty($empresa['logo']))
+                <img src="{{ $empresa['logo'] }}" alt="Logo" width="70" height="70" style="border-radius:50%;">
+            @else
+                LOGO
+            @endif
+        </div>
+        <p>Aldo & VictoriaVMC</p>
     </div>
 </header>
 
 <section class="info">
     <div>
-        <p><strong>Factura N°:</strong> 20212</p>
-        <p><strong>Fecha:</strong> 08/11/2025</p>
+        <p><strong>Comprobante N°:</strong> {{ $Comprobante['numero'] ?? '---' }}</p>
+        <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($Comprobante['fecha'] ?? now())->format('d/m/Y') }}</p>
     </div>
     <div>
-        <p><strong>Cliente:</strong> Lorna Alvarado</p>
-        <p><strong>Email:</strong> lorna@example.com</p>
+        <p><strong>Cliente:</strong> {{ $cliente['nombre'] ?? 'Cliente' }}</p>
+        @if(!empty($cliente['email']))
+            <p><strong>Email:</strong> {{ $cliente['email'] }}</p>
+        @endif
     </div>
 </section>
 
@@ -340,42 +348,43 @@
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>Dress</td>
-                <td>1</td>
-                <td>$59.00</td>
-                <td>$59.00</td>
-            </tr>
-            <tr>
-                <td>Hoodie</td>
-                <td>1</td>
-                <td>$69.00</td>
-                <td>$69.00</td>
-            </tr>
-            <tr>
-                <td>Heels</td>
-                <td>2</td>
-                <td>$39.00</td>
-                <td>$78.00</td>
-            </tr>
+            @forelse($productos as $item)
+                <tr>
+                    <td>{{ $item['descripcion'] ?? '---' }}</td>
+                    <td>{{ $item['cantidad'] ?? 0 }}</td>
+                    <td>${{ number_format($item['precio'], 2, ',', '.') }}</td>
+                    <td>${{ number_format(($item['cantidad'] ?? 0) * ($item['precio'] ?? 0), 2, ',', '.') }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="4" style="text-align:center;">No hay productos</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </div>
 
+@php
+    $subtotal = collect($productos)->sum(fn($p) => ($p['cantidad'] ?? 0) * ($p['precio'] ?? 0));
+    $impuesto = $factura['impuesto'] ?? 0.10;
+    $tax = $subtotal * $impuesto;
+    $total = $subtotal + $tax;
+@endphp
+
 <div class="totales">
-    <p>Subtotal: $206.00</p>
-    <p>Tax (10%): $20.60</p>
-    <p><strong>Grand Total: $226.60</strong></p>
+    <p>Subtotal: ${{ number_format($subtotal, 2, ',', '.') }}</p>
+    <p>Tax ({{ $impuesto * 100 }}%): ${{ number_format($tax, 2, ',', '.') }}</p>
+    <p><strong>Grand Total: ${{ number_format($total, 2, ',', '.') }}</strong></p>
 </div>
 
 <footer>
     <div class="footer-content">
         <div class="pay-info">
-            <p><strong>Bank Name:</strong> Thynk Unlimited</p>
-            <p><strong>Bank No:</strong> 123-456-7890</p>
-            <p><strong>Email:</strong> hello@reallygreatsite.com</p>
+            <p><strong>Bank Name:</strong> {{ $empresa['banco'] ?? 'Thynk Unlimited' }}</p>
+            <p><strong>Bank No:</strong> {{ $empresa['cuenta'] ?? '123-456-7890' }}</p>
+            <p><strong>Email:</strong> {{ $empresa['email'] ?? 'hello@reallygreatsite.com' }}</p>
         </div>
-        <div class="thankyou">Thank You</div>
+        <div class="thankyou">{{ $mensaje ?? 'Gracias por el apoyo!' }}</div>
     </div>
 </footer>
 
