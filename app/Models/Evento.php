@@ -9,9 +9,9 @@ class Evento extends Model
     //
     protected $connection = 'mongodb';
     protected $collection = 'eventos';
-    protected $fillable = ['nombreEvento','nombreLugar','direccion','fecha','hora','artistasExtras','imagenPrincipal','estado','entradas', 'url'];
+    protected $fillable = ['nombreEvento', 'nombreLugar', 'direccion', 'fecha', 'hora', 'artistasExtras', 'imagenPrincipal', 'estado', 'entradas', 'url'];
 
-     // Nombre del evento → Capitalizado
+    // Nombre del evento → Capitalizado
     public function setNombreEventoAttribute($value)
     {
         $this->attributes['nombreEvento'] = ucwords(strtolower($value));
@@ -26,6 +26,8 @@ class Evento extends Model
     // Direcion -> Capitalizado
     public function setDireccionAttribute($value)
     {
-        $this->attributes['direccion'] = ucwords(strtolower($value));
+        $this->attributes['direccion'] = is_string($value)
+            ? ucwords(strtolower($value))
+            : null;
     }
 }

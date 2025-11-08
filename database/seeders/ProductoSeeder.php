@@ -19,6 +19,7 @@ class ProductoSeeder extends Seeder
                 "descripcion" => "Este nadie lo utilizó (todavía). Usalo para tu auto o para romper el hielo.",
                 "precio" => 23.42,
                 "estado" => "Activo",
+                "category" => "Otro",
                 "stock" => [
                     "total" => 12,
                     "colores" => [
@@ -42,6 +43,7 @@ class ProductoSeeder extends Seeder
                 "descripcion" => "Remeras estampadas, 100% algodón. Ideales para toda ocasión.",
                 "precio" => 15.99,
                 "estado" => "Activo",
+                "category" => "Ropa",
                 "stock" => [
                     "total" => 71,
                     "colores" => [
@@ -74,6 +76,7 @@ class ProductoSeeder extends Seeder
                 "descripcion" => "Buzos oversize con capucha. Para el frío o para facha.",
                 "precio" => 29.99,
                 "estado" => "Activo",
+                "category" => "Ropa",
                 "stock" => [
                     "total" => 53,
                     "colores" => [
@@ -106,6 +109,7 @@ class ProductoSeeder extends Seeder
                 "descripcion" => "Gorras con visera curva y estilo callejero. Protegé tu flow del sol.",
                 "precio" => 12.0,
                 "estado" => "Activo",
+                "category" => "Accesorios",
                 "stock" => [
                     "total" => 20,
                     "colores" => [
@@ -132,6 +136,7 @@ class ProductoSeeder extends Seeder
                 "descripcion" => "Cartas originales, manoseadas por el Rubius, te hacen sentir poderoso. (Según Gaspi.)",
                 "precio" => 19.99,
                 "estado" => "Activo",
+                "category" => "Otro",
                 "stock" => [
                     "total" => 60,
                     "colores" => [
@@ -152,6 +157,7 @@ class ProductoSeeder extends Seeder
                 "descripcion" => "Incluye disco de 'Una Direccion' y una pileta inflable firmada por Charly García (junto a la frase 'Si sos inglés no saltes').",
                 "precio" => 49.99,
                 "estado" => "Activo",
+                "category" => "Otro",
                 "stock" => [
                     "total" => 5,
                     "colores" => [
