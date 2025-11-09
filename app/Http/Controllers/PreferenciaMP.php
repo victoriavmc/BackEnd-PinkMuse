@@ -2,16 +2,22 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use MercadoPago\Client\Preference\PreferenceClient;
 use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Exceptions\MPApiException;
 use Illuminate\Support\Facades\Log;
 
+
 class PreferenciaMP
 {
+    public $usuario;
+
     public function __construct()
     {
+        $this->usuario = Auth::user();
         MercadoPagoConfig::setAccessToken(env('MERCADOPAGO_ACCESS_TOKEN'));
     }
 
@@ -61,7 +67,6 @@ class PreferenciaMP
                 'success' => true,
                 'preference_id' => $preference->id,
             ]);
-
         } catch (MPApiException $e) {
             Log::error('❌ Error de API de MercadoPago:', [
                 'status' => $e->getStatusCode(),
@@ -76,16 +81,14 @@ class PreferenciaMP
                 'status_code' => $e->getStatusCode(),
                 'api_response' => $e->getApiResponse(),
             ], 500);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('❌ Error de validación:', ['errors' => $e->errors()]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
                 'errors' => $e->errors(),
             ], 422);
-
         } catch (\Exception $e) {
             Log::error('❌ Error general:', [
                 'message' => $e->getMessage(),

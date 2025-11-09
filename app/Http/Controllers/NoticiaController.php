@@ -10,10 +10,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class NoticiaController
 {
     use ApiResponse;
+    public $usuario;
 
     /**
      * @var NotificationService
@@ -27,6 +29,7 @@ class NoticiaController
 
     public function __construct(NotificationService $notificationService, ImageService $imageService)
     {
+        $this->usuario = Auth::user();
         $this->notificationService = $notificationService;
         $this->imageService = $imageService;
     }

@@ -11,11 +11,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
+use Illuminate\Support\Facades\Auth;
 
 class ComentarioController
 {
     use ApiResponse;
+    public $usuario;
 
+    public function __construct()
+    {
+        $this->usuario = Auth::user();
+    }
     protected function normalizeId($value): ?string
     {
         if ($value === null) {
@@ -84,7 +90,7 @@ class ComentarioController
 
         $usuarioIds = $comentarios
             ->pluck('usuario_id')
-            ->map(fn ($id) => $this->normalizeId($id))
+            ->map(fn($id) => $this->normalizeId($id))
             ->filter()
             ->unique()
             ->values();

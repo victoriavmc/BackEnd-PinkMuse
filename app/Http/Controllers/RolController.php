@@ -3,13 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rol;
+use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
+use Illuminate\Support\Facades\Auth;
 
 class RolController
 {
     use ApiResponse;
+
+    public $usuario;
+
+    public function __construct()
+    {
+        $this->usuario = Auth::user();
+    }
     /**
      * Display a listing of the resource.
      */

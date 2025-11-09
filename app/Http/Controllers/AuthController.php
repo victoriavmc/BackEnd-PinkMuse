@@ -15,10 +15,10 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\ResetPasswordMail;
 use App\Models\PasswordResetToken;
 
+
 class AuthController
 {
     use ApiResponse;
-
     public function registro(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -46,8 +46,8 @@ class AuthController
         }
 
         $rol_id = $request->filled('rol_id') && !empty($request->input('rol_id'))
-        ? $request->input('rol_id')
-        : '6907bc2212642a84a100afc3';
+            ? $request->input('rol_id')
+            : '6907bc2212642a84a100afc3';
 
         $rol = Rol::find($rol_id);
         if (!$rol) {
@@ -137,7 +137,7 @@ class AuthController
     // Forgoten
     public function forgotten(Request $request)
     {
-       $validator = Validator::make($request->all(), $this->rules($request, true));
+        $validator = Validator::make($request->all(), $this->rules($request, true));
 
         if ($validator->fails()) {
             return response()->json([

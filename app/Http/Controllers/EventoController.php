@@ -11,6 +11,7 @@ use App\Traits\ApiResponse;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use App\Services\ImageService;
+use Illuminate\Support\Facades\Auth;
 // Importar el servicio
 
 use function PHPUnit\Framework\isEmpty;
@@ -18,12 +19,14 @@ use function PHPUnit\Framework\isEmpty;
 class EventoController
 {
     use ApiResponse;
+    public $usuario;
 
     protected NotificationService $notificationService;
     protected ImageService $imageService;
 
     public function __construct(NotificationService $notificationService, ImageService $imageService)
     {
+        $this->usuario = Auth::user();
         $this->notificationService = $notificationService;
         $this->imageService = $imageService;
     }
