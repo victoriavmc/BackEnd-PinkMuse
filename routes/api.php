@@ -37,6 +37,7 @@ Route::post('/reset-password', [AuthController::class, 'reset']);
 
 Route::post('/imagenes', [ImageController::class, 'store']);
 Route::delete('/imagenes', [ImageController::class, 'destroy']);
+
 Route::middleware('mongo.auth')->group(function () {
     Route::post('/cerrarsesion', [AuthController::class, 'cerrarsesion']);
     Route::get('/usuario', function (Request $request) {
@@ -171,3 +172,4 @@ Route::controller(RedSocialController::class)->group(function () {
 
 // MP
 Route::post('/preferencias', [PreferenciaMP::class, 'crearPreferencia']);
+Route::post('/comprobantes/desde-mercadopago', [ComprobanteController::class, 'crearDesdePagoMP']);

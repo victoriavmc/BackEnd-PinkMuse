@@ -32,8 +32,19 @@ class PreferenciaMP
             $client = new PreferenceClient();
 
             $preferenceData = [
-                'items' => $validated['items'],
-            ];
+                'items' => array_map(function ($item) {
+                    return [
+                        'title' => $item['title'],
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $item['unit_price'],
+                        'id' => $item['id'] ?? uniqid(),
+                    ];
+                }, $validated['items']),
+                'metadata' => [
+                    'user_id' => $request->user_id ?? 'guest',
+                    'event_id' => $request->event_id ?? null,
+                ],
+            ];;
 
             // Solo agregar back_urls si están configuradas
             $successUrl = env('MP_SUCCESS_URL');
@@ -61,7 +72,6 @@ class PreferenciaMP
                 'success' => true,
                 'preference_id' => $preference->id,
             ]);
-
         } catch (MPApiException $e) {
             Log::error('❌ Error de API de MercadoPago:', [
                 'status' => $e->getStatusCode(),
@@ -76,16 +86,14 @@ class PreferenciaMP
                 'status_code' => $e->getStatusCode(),
                 'api_response' => $e->getApiResponse(),
             ], 500);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('❌ Error de validación:', ['errors' => $e->errors()]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
                 'errors' => $e->errors(),
             ], 422);
-
         } catch (\Exception $e) {
             Log::error('❌ Error general:', [
                 'message' => $e->getMessage(),
