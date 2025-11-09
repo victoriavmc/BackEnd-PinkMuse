@@ -531,6 +531,7 @@ class EventoController
             $this->imageService->eliminar($evento->imagenPrincipal);
 
             // 2. Borrar el evento de la BD
+
             $evento->delete();
 
             return $this->success(null, 'Evento eliminado exitosamente', 204); // 204 No Content
@@ -543,6 +544,12 @@ class EventoController
     // Generar solicitud de compra de entradas para un evento
     public function generarSolicitudCompra(Request $request, string $nombreEvento)
     {
+        Log::info('SolicitudCompra recibida', [
+            'usuario' => auth()->user(),
+            'nombreEvento' => $nombreEvento,
+            'payload' => $request->all(),
+        ]);
+
         // Buscar evento
         $evento = Evento::where('nombreEvento', $nombreEvento)->first();
 
