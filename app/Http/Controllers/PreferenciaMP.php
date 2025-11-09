@@ -2,61 +2,101 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use MercadoPago\Client\Preference\PreferenceClient;
 use MercadoPago\MercadoPagoConfig;
+use MercadoPago\Exceptions\MPApiException;
+use Illuminate\Support\Facades\Log;
 
 class PreferenciaMP
 {
-    protected array $items = [];
-
     public function __construct()
     {
         MercadoPagoConfig::setAccessToken(env('MERCADOPAGO_ACCESS_TOKEN'));
     }
 
-    /**
-     * Agregar un ítem (ticket evento o producto)
-     */
-    public function agregarItem(string $nombre, float $precio, int $cantidad): void
+    public function crearPreferencia(Request $request)
     {
-        $this->items[] = [
-            'title' => $nombre,
-            'quantity' => $cantidad,
-            'unit_price' => $precio,
-        ];
-    }
+        try {
+            Log::info('📥 Request recibido:', $request->all());
 
-    /**
-     * Crear la preferencia unificada
-     */
-    public function crearPreferencia(): object
-    {
-        if (empty($this->items)) {
-            throw new \Exception('No hay ítems agregados para crear la preferencia.');
+            $validated = $request->validate([
+                'items' => 'required|array|min:1',
+                'items.*.title' => 'required|string',
+                'items.*.quantity' => 'required|integer|min:1',
+                'items.*.unit_price' => 'required|numeric|min:0',
+            ]);
+
+            Log::info('✅ Datos validados:', $validated);
+
+            $client = new PreferenceClient();
+
+            $preferenceData = [
+                'items' => $validated['items'],
+            ];
+
+            // Solo agregar back_urls si están configuradas
+            $successUrl = env('MP_SUCCESS_URL');
+            $failureUrl = env('MP_FAILURE_URL');
+            $pendingUrl = env('MP_PENDING_URL');
+
+            if ($successUrl && $failureUrl && $pendingUrl) {
+                $preferenceData['back_urls'] = [
+                    'success' => $successUrl,
+                    'failure' => $failureUrl,
+                    'pending' => $pendingUrl,
+                ];
+                $preferenceData['auto_return'] = 'approved';
+            }
+
+            Log::info('🚀 Enviando a MercadoPago:', $preferenceData);
+
+            $preference = $client->create($preferenceData);
+
+            Log::info('✅ Preferencia creada exitosamente:', [
+                'id' => $preference->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'preference_id' => $preference->id,
+            ]);
+
+        } catch (MPApiException $e) {
+            Log::error('❌ Error de API de MercadoPago:', [
+                'status' => $e->getStatusCode(),
+                'message' => $e->getMessage(),
+                'api_response' => $e->getApiResponse(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la preferencia de pago',
+                'error' => $e->getMessage(),
+                'status_code' => $e->getStatusCode(),
+                'api_response' => $e->getApiResponse(),
+            ], 500);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('❌ Error de validación:', ['errors' => $e->errors()]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos inválidos',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error general:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la preferencia de pago',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        $client = new PreferenceClient();
-
-        $preferenceData = [
-            'items' => $this->items,
-            'back_urls' => [
-                'success' => env('MP_SUCCESS_URL'),
-                'failure' => env('MP_FAILURE_URL'),
-                'pending' => env('MP_PENDING_URL'),
-            ],
-            'auto_return' => 'approved',
-        ];
-
-        $preference = $client->create($preferenceData);
-
-        return $preference;
-    }
-
-    /**
-     * Obtener los ítems actuales (mostrar antes de pagar)
-     */
-    public function obtenerItems(): array
-    {
-        return $this->items;
     }
 }

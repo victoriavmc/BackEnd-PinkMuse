@@ -170,8 +170,4 @@ Route::controller(RedSocialController::class)->group(function () {
 });
 
 // MP
-Route::controller(PreferenciaMP::class)->group(function () {
-    Route::post('/preferencias', 'crearPreferencia'); // Crear preferencia de pago
-    Route::post('/preferencias/agregar-item', 'agregarItem'); // Agregar ítem a la preferencia
-    Route::get('/preferencias/obtener-items', 'obtenerItems'); // Obtener los ítems actuales
-});
+Route::post('/preferencias', [PreferenciaMP::class, 'crearPreferencia']);
