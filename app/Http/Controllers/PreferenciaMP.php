@@ -2,16 +2,22 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use MercadoPago\Client\Preference\PreferenceClient;
 use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Exceptions\MPApiException;
 use Illuminate\Support\Facades\Log;
 
+
 class PreferenciaMP
 {
+    public $usuario;
+
     public function __construct()
     {
+        $this->usuario = Auth::user();
         MercadoPagoConfig::setAccessToken(env('MERCADOPAGO_ACCESS_TOKEN'));
     }
 

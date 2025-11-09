@@ -8,14 +8,16 @@ use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
 use Carbon\Carbon;
 use MongoDB\BSON\ObjectId;
+use Illuminate\Support\Facades\Auth;
 
 class NotificacionController
 {
     use ApiResponse;
+    public $usuario;
 
     public function __construct()
     {
-        // El constructor puede estar vacío si no hay dependencias a nivel de controlador.
+        $this->usuario = Auth::user();
     }
 
     public function index(Request $request)

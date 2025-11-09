@@ -10,10 +10,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class NoticiaController
 {
     use ApiResponse;
+    public $usuario;
 
     /**
      * @var NotificationService
@@ -27,6 +29,7 @@ class NoticiaController
 
     public function __construct(NotificationService $notificationService, ImageService $imageService)
     {
+        $this->usuario = Auth::user();
         $this->notificationService = $notificationService;
         $this->imageService = $imageService;
     }
@@ -197,7 +200,7 @@ class NoticiaController
             'imagenPrincipal' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'imagenes' => 'nullable|array',
             'imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
-            'fecha' => 'sometimes|date|after_or_equal:today',
+            'fecha' => 'sometimes|date|date_format:Y-m-d',
             'habilitacionComentarios' => 'sometimes|boolean',
             'habilitacionAcciones' => 'sometimes|string|in:si,no',
             'resumen' => 'nullable|string',
@@ -213,7 +216,7 @@ class NoticiaController
             'imagenPrincipal' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'imagenes' => 'nullable|array',
             'imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
-            'fecha' => 'required|date|after_or_equal:today',
+            'fecha' => 'required|date_format:Y-m-d|after:today',
             'habilitacionComentarios' => 'required|boolean',
             'habilitacionAcciones' => 'required|string|in:si,no',
             'resumen' => 'nullable|string',

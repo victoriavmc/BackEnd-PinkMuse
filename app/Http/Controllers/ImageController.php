@@ -7,10 +7,12 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
 class ImageController
 {
     use ApiResponse;
+    public $usuario;
 
     private ImageService $imageService;
 
@@ -18,6 +20,7 @@ class ImageController
 
     public function __construct(ImageService $imageService)
     {
+        $this->usuario = Auth::user();
         $this->imageService = $imageService;
     }
 

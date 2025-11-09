@@ -17,6 +17,12 @@ class ComprobanteController
 {
     use ApiResponse;
 
+    public $usuario;
+
+    public function __construct()
+    {
+        $this->usuario = Auth::user();
+    }
     /**
      * Display a listing of the resource.
      */

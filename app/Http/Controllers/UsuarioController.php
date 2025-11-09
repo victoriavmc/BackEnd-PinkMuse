@@ -9,16 +9,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponse;
 use App\Services\ImageService;
+use Illuminate\Support\Facades\Auth;
 
 class UsuarioController
 {
     use ApiResponse;
+    public $usuario;
 
     protected NotificationService $notificationService;
     protected ImageService $imageService;
 
     public function __construct(NotificationService $notificationService, ImageService $imageService)
     {
+        $this->usuario = Auth::user();
         $this->notificationService = $notificationService;
         $this->imageService = $imageService;
     }
@@ -86,7 +89,7 @@ class UsuarioController
         if ($validator->fails()) {
             return $this->error('Error de validación', 400, $validator->errors());
         }
-        
+
         $data = $validator->validated();
 
         // Actualizar rol si se envía
@@ -139,7 +142,7 @@ class UsuarioController
                 false,
                 0
             );
-            
+
             // 3. Asignar la nueva ruta
             $perfil['imagenPrincipal'] = $rutas[0];
             $usuario->perfil = $perfil;
@@ -237,12 +240,11 @@ class UsuarioController
             // 1. Eliminar la imagen de perfil (si existe)
             $oldImage = $usuario->perfil['imagenPrincipal'] ?? null;
             $this->imageService->eliminar($oldImage);
-            
+
             // 2. Borramos el usuario
             $usuario->delete();
-            
-            return $this->success(null, 'Usuario eliminado exitosamente', 204);
 
+            return $this->success(null, 'Usuario eliminado exitosamente', 204);
         } catch (\Exception $e) {
             return $this->error('Error al eliminar el usuario', 500, $e->getMessage());
         }

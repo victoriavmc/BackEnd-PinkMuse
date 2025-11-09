@@ -9,11 +9,17 @@ use App\Models\Usuario;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class ReaccionController
 {
     use ApiResponse;
+    public $usuario;
 
+    public function __construct()
+    {
+        $this->usuario = Auth::user();
+    }
     protected array $reactionTypes = ['like', 'love', 'wow', 'angry', 'dislike'];
 
     protected function normalizeId($value): ?string
@@ -280,7 +286,3 @@ class ReaccionController
         );
     }
 }
-
-
-
-

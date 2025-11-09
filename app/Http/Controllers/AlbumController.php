@@ -7,10 +7,12 @@ use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Services\ImageService;
+use Illuminate\Support\Facades\Auth;
 
 class AlbumController
 {
     use ApiResponse;
+    public $usuario;
 
     // --- INYECCIÓN DE DEPENDENCIAS ---
     private ImageService $imageService;
@@ -20,6 +22,7 @@ class AlbumController
      */
     public function __construct(ImageService $imageService)
     {
+        $this->usuario = Auth::user();
         $this->imageService = $imageService;
     }
 
@@ -296,7 +299,6 @@ class AlbumController
             $album->delete();
 
             return $this->success(null, "Álbum eliminado exitosamente", 204);
-
         } catch (\Exception $e) {
             return $this->error('Error al eliminar el álbum', 500, $e->getMessage());
         }
