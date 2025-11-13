@@ -79,7 +79,7 @@ class UsuarioController
             'perfil.imagenPrincipal' => 'nullable',
             'preferenciaNotificacion' => 'nullable|array',
             'rol_id' => 'sometimes|required|string',
-            'estado' => 'sometimes|required|string|in:activo,inactivo,teta',
+            'estado' => 'sometimes|required|string|in:activo,inactivo',
         ]);
 
         $validator->sometimes('perfil.imagenPrincipal', 'image|mimes:jpeg,png,jpg,webp|max:2048', function () use ($request) {
