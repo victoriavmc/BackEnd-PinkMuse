@@ -342,91 +342,59 @@ class EventoController
             $data['imagenPrincipal'] = $imagenPrincipalInput;
         }
 
+
         // === Actualizar entradas ===
         if ($request->has('entradas')) {
-            $entradasNuevas = $request->input('entradas', []);
-            $entradasActuales = collect($evento->entradas ?? []);
 
-            // Si el estado del evento es distinto de "Activo", todas las entradas quedan como No Disponible
-            if (isset($data['estado']) && $data['estado'] !== 'Activo') {
-                $entradasNuevas = collect($entradasNuevas)->map(function ($entrada) {
-                    $entrada['estado'] = 'No disponible';
-                    return $entrada;
+            $entradasNuevas = $request->input('entradas', []);
+            $eventoEsActivo = isset($data['estado']) && $data['estado'] === 'Activo';
+
+            // === 1. Evento NO activo → todo No Disponible ===
+            if (!$eventoEsActivo) {
+                $data['entradas'] = collect($entradasNuevas)->map(function ($entrada) {
+                    return [
+                        'tipo'     => $entrada['tipo'],
+                        'precio'   => $entrada['precio'] ?? 0,
+                        'cantidad' => $entrada['cantidad'] ?? 0,
+                        'estado'   => 'No Disponible',
+                    ];
                 })->toArray();
-                $data['entradas'] = $entradasNuevas;
             } else {
-                // Verificar tipos duplicados
+                // === Evento ACTIVO ===
+
+                // Validar tipos duplicados
                 $tipos = array_column($entradasNuevas, 'tipo');
                 if (count($tipos) !== count(array_unique($tipos))) {
                     return $this->error('Error de validación', 400, 'No puede haber tipos de entrada repetidos en el mismo evento');
                 }
 
-                // Fusionar: mantener las existentes, agregar nuevas y eliminar las que ya no estén
                 $entradasFinales = [];
 
-                foreach ($entradasActuales as $entradaActual) {
-                    $tipo = $entradaActual['tipo'] ?? null;
-                    $entradaNueva = collect($entradasNuevas)->firstWhere('tipo', $tipo);
+                foreach ($entradasNuevas as $entrada) {
 
-                    if ($entradaNueva) {
-                        // Actualizar datos existentes
-                        $cantidad = $entradaNueva['cantidad'] ?? $entradaActual['cantidad'] ?? 0;
-                        $estado   = $entradaNueva['estado'] ?? $entradaActual['estado'] ?? 'Disponible';
+                    $cantidad = $entrada['cantidad'] ?? 0;
+                    $estadoUsuario = strtolower($entrada['estado'] ?? 'Disponible');
 
-                        // Estado y cantidad automáticos con prioridad lógica
-                        if (isset($entradaNueva['cantidad']) && $entradaNueva['cantidad'] > 0) {
-                            // El usuario ingresó cantidad, forzamos estado = Disponible
-                            $cantidad = $entradaNueva['cantidad'];
-                            $estado = 'Disponible';
-                        } elseif (isset($entradaNueva['estado']) && strtolower($entradaNueva['estado']) !== 'Disponible') {
-                            // No ingresó cantidad válida, pero sí un estado distinto
-                            $estado = $entradaNueva['estado'];
-                            $cantidad = $entradaNueva['cantidad'] ?? 0;
-                            if ($cantidad <= 0) {
-                                $cantidad = 0; // aseguramos que no haya stock si no está disponible
-                            }
-                        } else {
-                            // Ningún dato relevante → por defecto no disponible
-                            $estado = 'No Disponible';
-                            $cantidad = 0;
-                        }
-
-
-                        $entradaActual['precio']   = $entradaNueva['precio'] ?? $entradaActual['precio'] ?? 0;
-                        $entradaActual['cantidad'] = $cantidad;
-                        $entradaActual['estado']   = $estado;
-
-                        $entradasFinales[] = $entradaActual;
+                    // === Regla: cantidad = 0 → siempre No Disponible ===
+                    if ($cantidad == 0) {
+                        $estado = 'No Disponible';
                     } else {
-                        // Entrada eliminada en la actualización, no se agrega
-                        continue;
+                        // === cantidad > 0 ===
+                        $estado = 'Disponible';
                     }
+
+                    $entradasFinales[] = [
+                        'tipo'     => $entrada['tipo'],
+                        'precio'   => $entrada['precio'] ?? 0,
+                        'cantidad' => $cantidad,
+                        'estado'   => $estado,
+                    ];
                 }
 
-                // Agregar entradas nuevas (que no existían antes)
-                foreach ($entradasNuevas as $entradaNueva) {
-                    $tipo = $entradaNueva['tipo'];
-                    if (!$entradasActuales->contains(fn($e) => $e['tipo'] === $tipo)) {
-                        $cantidad = $entradaNueva['cantidad'] ?? 0;
-                        $estado   = $entradaNueva['estado'] ?? 'Disponible';
-
-                        if ($cantidad > 0 && strtolower($estado) !== 'Disponible') {
-                            $estado = 'Disponible';
-                        } elseif ($cantidad <= 0 && strtolower($estado) !== 'No Disponible') {
-                            $estado = 'No Disponible';
-                            $cantidad = 0;
-                        }
-
-                        $entradaNueva['cantidad'] = $cantidad;
-                        $entradaNueva['estado']   = $estado;
-
-                        $entradasFinales[] = $entradaNueva;
-                    }
-                }
-
-                $data['entradas'] = array_values($entradasFinales);
+                $data['entradas'] = $entradasFinales;
             }
         }
+
 
         // === Actualizar el evento ===
         $evento->update($data);
