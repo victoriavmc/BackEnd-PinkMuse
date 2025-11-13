@@ -40,6 +40,7 @@ Route::post('/reset-password', [AuthController::class, 'reset']);
 // Visualización pública (GET)
 Route::get('/album', [AlbumController::class, 'index']);
 Route::get('/album/{id}', [AlbumController::class, 'show']);
+Route::get('/album/{tituloAlbum}/cancion/{tituloCancion}', [AlbumController::class, 'showSong']);
 Route::get('/eventos', [EventoController::class, 'index']);
 Route::get('/eventos/{id}', [EventoController::class, 'show']);
 Route::get('/noticias', [NoticiaController::class, 'index']);

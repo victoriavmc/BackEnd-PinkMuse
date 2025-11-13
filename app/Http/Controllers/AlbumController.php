@@ -141,21 +141,39 @@ class AlbumController
     }
 
     // Mostrar una cancion especifica de un album
+
     public function showSong(string $tituloAlbum, string $tituloCancion)
     {
-        $album = Album::where('nombre', $tituloAlbum)->first();
+        $tituloAlbum = urldecode($tituloAlbum);
+        $tituloCancion = urldecode($tituloCancion);
+
+        // Normaliza texto: minúsculas y sin tildes
+        $normalize = function ($text) {
+            $text = strtolower($text);
+            $text = iconv('UTF-8', 'ASCII//TRANSLIT', $text);
+            return $text;
+        };
+
+        // Busca todos los álbumes y compara normalizados
+        $album = null;
+        foreach (Album::all() as $a) {
+            if ($normalize($a->nombre) === $normalize($tituloAlbum)) {
+                $album = $a;
+                break;
+            }
+        }
         if (!$album) {
             return $this->error('Álbum no encontrado', 404);
         }
+
         $canciones = $album->canciones ?? [];
         foreach ($canciones as $cancion) {
-            if ($cancion['titulo'] === $tituloCancion) {
+            if ($normalize($cancion['titulo']) === $normalize($tituloCancion)) {
                 return $this->success(['cancion' => $cancion], 200);
             }
         }
         return $this->error('Canción no encontrada en este álbum', 404);
     }
-
     // Actualizar cancion especifica de un album
     public function updateSong(Request $request, string $tituloAlbum, string $tituloCancion)
     {
